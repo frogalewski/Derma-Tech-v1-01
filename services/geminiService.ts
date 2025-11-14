@@ -99,3 +99,31 @@ export async function generateFormulaIcon(formulaName: string, language: Languag
         throw new Error(`Não foi possível gerar o ícone para "${formulaName}".`);
     }
 }
+
+export async function readPrescription(base64Image: string, mimeType: string, language: Language = 'pt-BR'): Promise<string> {
+    try {
+        const model = 'gemini-2.5-flash';
+        const prompt = translations[language].prompts.prescriptionReader;
+
+        const imagePart = {
+            inlineData: {
+                mimeType: mimeType,
+                data: base64Image,
+            },
+        };
+
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: { parts: [imagePart, { text: prompt }] },
+        });
+
+        return response.text;
+
+    } catch (error) {
+        console.error("Error reading prescription with Gemini API:", error);
+        const errorMsg = language === 'pt-BR' 
+            ? "Não foi possível ler a receita. Verifique o console para mais detalhes."
+            : "Could not read the prescription. Check the console for more details.";
+        throw new Error(errorMsg);
+    }
+}

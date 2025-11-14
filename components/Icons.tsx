@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 
 type IconProps = { className?: string };
@@ -38,7 +39,7 @@ export const BookmarkIcon: React.FC<IconProps> = ({ className }) => (
 );
 
 export const WhatsAppIcon: React.FC<IconProps> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24" fill="currentColor">
         <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zM12.04 20.15c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31c-.82-1.31-1.26-2.83-1.26-4.38 0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42 1.56 1.56 2.42 3.62 2.42 5.83 0 4.54-3.7 8.24-8.24 8.24zm3.56-5.45c-.18-.1-.92-.46-1.06-.51s-.25-.08-.36.08c-.1.15-.4.51-.49.61s-.18.1-.33.03c-.15-.08-.66-.24-1.25-.77-.46-.42-.77-.94-.86-1.1s-.09-.25.04-.34c.12-.09.25-.25.38-.38s.17-.22.25-.36.04-.25-.04-.34c-.08-.1-.36-.86-.49-1.18s-.26-.26-.36-.26h-.25c-.1 0-.25.04-.38.17s-.5.49-.5 1.18.51 1.36.58 1.46.99 1.52 2.42 2.13c.34.15.6.22.82.28.29.08.55.06.75-.02.23-.08.92-.38 1.05-.75s.13-.7.09-.75c-.04-.05-.1-.08-.18-.17z"/>
     </svg>
 );
@@ -180,5 +181,40 @@ export const SuccessIcon: React.FC<IconProps> = ({ className }) => (
 export const InfoIcon: React.FC<IconProps> = ({ className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+);
+
+export const ScanIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+        <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+        <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+        <path d="M7 12h10" />
+    </svg>
+);
+// FIX: Add missing CameraIcon for PrescriptionReader component.
+export const CameraIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+        <circle cx="12" cy="13" r="3"/>
+    </svg>
+);
+
+// FIX: Add missing UserIcon for PrescriptionReader component.
+export const UserIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+    </svg>
+);
+
+// FIX: Add missing CalendarIcon for PrescriptionReader component.
+export const CalendarIcon: React.FC<IconProps> = ({ className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
     </svg>
 );

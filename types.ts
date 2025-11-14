@@ -32,3 +32,13 @@ export interface Product {
   description: string;
   category?: string;
 }
+
+export interface PrescriptionData {
+  doctorName: string;
+  patientName: string;
+  date: string;
+  prescribedItems: Array<{
+    name: string;
+    instructions: string;
+  }>;
+}

@@ -1,10 +1,12 @@
 
 
 
-import React, { useState, useRef } from 'react';
+
+import React, { useRef } from 'react';
 import { HistoryItem, Formula, Product } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { BookmarkIcon, ClockIcon, CloseIcon, CogIcon, DownloadIcon, EditIcon, ImportIcon, PackageIcon, PlusIcon, TrashIcon } from './Icons';
+import { ActiveTab } from '../App';
+import { BookmarkIcon, ClockIcon, CloseIcon, CogIcon, DownloadIcon, EditIcon, ImportIcon, PackageIcon, PlusIcon, ScanIcon, TrashIcon } from './Icons';
 
 interface HistorySidebarProps {
   history: HistoryItem[];
@@ -22,15 +24,16 @@ interface HistorySidebarProps {
   onImportProducts: (products: Omit<Product, 'id'>[]) => void;
   onExportProducts: () => void;
   isSidebarOpen: boolean;
+  activeTab: ActiveTab;
+  onTabChange: (tab: ActiveTab) => void;
 }
 
 const HistorySidebar: React.FC<HistorySidebarProps> = ({ 
     history, onItemClick, onClearHistory, selectedItemId,
     savedFormulas, onRemoveSaved, onClearSaved,
     products, onAddProduct, onEditProduct, onDeleteProduct, onClearProducts, onImportProducts, onExportProducts,
-    isSidebarOpen
+    isSidebarOpen, activeTab, onTabChange
 }) => {
-    const [activeTab, setActiveTab] = useState<'history' | 'saved' | 'products' | 'settings'>('history');
     const productsFileInputRef = useRef<HTMLInputElement>(null);
     const { t, language, setLanguage } = useLanguage();
 
@@ -124,16 +127,23 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
 
       <div className={`flex flex-col flex-grow min-h-0 transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-5 gap-1">
                 <button 
-                    onClick={() => setActiveTab('history')}
+                    onClick={() => onTabChange('history')}
                     title={t('history')}
                     className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'history' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
                     <ClockIcon className="h-6 w-6" />
                 </button>
+                 <button 
+                    onClick={() => onTabChange('prescription')}
+                    title={t('prescriptionReader')}
+                    className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'prescription' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                >
+                    <ScanIcon className="h-6 w-6" />
+                </button>
                 <button 
-                    onClick={() => setActiveTab('saved')}
+                    onClick={() => onTabChange('saved')}
                     title={t('saved')}
                     className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${activeTab === 'saved' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
@@ -143,7 +153,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                     </span>
                 </button>
                 <button 
-                    onClick={() => setActiveTab('products')}
+                    onClick={() => onTabChange('products')}
                     title={t('products')}
                     className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${activeTab === 'products' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
@@ -153,7 +163,7 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                     </span>
                 </button>
                 <button
-                    onClick={() => setActiveTab('settings')}
+                    onClick={() => onTabChange('settings')}
                     title={t('settings')}
                     className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'settings' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
@@ -281,6 +291,14 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                             <option value="en">English</option>
                         </select>
                     </div>
+                </div>
+            )}
+            {/* Hiding tab-specific content when prescription tab is active from the main panel for simplicity */}
+            {activeTab === 'prescription' && (
+                 <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                    <ScanIcon className="h-10 w-10 mx-auto text-gray-400 mb-2"/>
+                    <p>{t('prescriptionReader')}</p>
+                    <p className="text-sm">{t('prescriptionReaderInstructions')}</p>
                 </div>
             )}
         </div>

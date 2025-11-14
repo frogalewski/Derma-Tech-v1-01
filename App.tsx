@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getFormulaSuggestionsStream, generateFormulaIcon } from './services/geminiService';
 import * as dbService from './services/dbService';
@@ -18,7 +19,11 @@ import ToastContainer, { ToastData } from './components/ToastContainer';
 import FormulaDetailModal from './components/FormulaDetailModal';
 import FormulaEditModal from './components/FormulaEditModal';
 import ContactModal from './components/ContactModal';
+import PrescriptionReader from './components/PrescriptionReader';
 import { MailIcon, MenuIcon, PharmacistIcon } from './components/Icons';
+
+
+export type ActiveTab = 'history' | 'saved' | 'products' | 'settings' | 'prescription';
 
 
 const App: React.FC = () => {
@@ -44,6 +49,7 @@ const App: React.FC = () => {
     const [expandedFormula, setExpandedFormula] = useState<Formula | null>(null);
     const [formulaToEdit, setFormulaToEdit] = useState<Formula | null>(null);
     const [isDbLoading, setIsDbLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<ActiveTab>('history');
 
 
     const addToast = useCallback((message: string, type: ToastData['type'] = 'error') => {
@@ -262,11 +268,13 @@ const App: React.FC = () => {
     }, [products, addToast, t]);
 
 
-    const handleSearch = useCallback(async () => {
-        if (!disease.trim()) {
+    const handleSearch = useCallback(async (searchTerm?: string) => {
+        const term = searchTerm || disease;
+        if (!term.trim()) {
             addToast(t('toastErrorEnterCondition'));
             return;
         }
+        if (activeTab !== 'history') setActiveTab('history');
 
         setIsLoading(true);
         setResponse(null);
@@ -278,7 +286,7 @@ const App: React.FC = () => {
             const collectedSources: GroundingSource[] = [];
 
             const stream = getFormulaSuggestionsStream(
-                disease,
+                term,
                 considerProducts ? products : [],
                 language
             );
@@ -311,7 +319,7 @@ const App: React.FC = () => {
             const newItem: HistoryItem = {
                 id: Date.now().toString(),
                 timestamp: Date.now(),
-                disease: disease,
+                disease: term,
                 doctorName: doctorName,
                 response: parsedResponse,
                 sources: collectedSources,
@@ -334,7 +342,7 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [disease, doctorName, considerProducts, products, generateAndSetIcons, addToast, t, language]);
+    }, [disease, doctorName, considerProducts, products, generateAndSetIcons, addToast, t, language, activeTab]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -349,6 +357,7 @@ const App: React.FC = () => {
         setSelectedHistoryItemId(item.id);
         setIsLoading(false);
         generateAndSetIcons(item.response.formulas);
+        setActiveTab('history');
         setIsSidebarOpen(false);
     };
 
@@ -415,6 +424,14 @@ const App: React.FC = () => {
         handleCloseEditModal();
     };
 
+    const handleSearchFromPrescription = (term: string) => {
+        setDisease(term);
+        setActiveTab('history');
+        // We set the term, switch tab, and then the user can click search.
+        // Or we could trigger it automatically:
+        // handleSearch(term); 
+    };
+
     if (isDbLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -454,6 +471,8 @@ const App: React.FC = () => {
                     onImportProducts={handleImportProducts}
                     onExportProducts={handleExportProducts}
                     isSidebarOpen={isSidebarOpen}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
                 />
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto h-screen">
                     <div className="max-w-4xl mx-auto">
@@ -470,97 +489,106 @@ const App: React.FC = () => {
                             </div>
                         </header>
 
-                        <section>
-                            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                                <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-6 gap-4 items-center">
-                                    <input
-                                        type="text"
-                                        value={disease}
-                                        onChange={(e) => setDisease(e.target.value)}
-                                        placeholder={t('diseaseInputPlaceholder')}
-                                        className="sm:col-span-3 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
-                                        disabled={isLoading}
-                                        aria-label={t('diseaseInputAria')}
-                                    />
-                                     <input
-                                        type="text"
-                                        value={doctorName}
-                                        onChange={(e) => setDoctorName(e.target.value)}
-                                        placeholder={t('doctorInputPlaceholder')}
-                                        className="sm:col-span-2 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
-                                        disabled={isLoading}
-                                        aria-label={t('doctorInputAria')}
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={isLoading}
-                                        className="sm:col-span-1 w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                </svg>
-                                                <span>{t('searchingButton')}</span>
-                                            </>
-                                        ) : (
-                                            <span>{t('searchButton')}</span>
-                                        )}
-                                    </button>
-                                </form>
-                                <div className="mt-4 flex items-center justify-center">
-                                    <label htmlFor="consider-products-toggle" className="flex items-center cursor-pointer select-none text-sm text-gray-700 dark:text-gray-300">
-                                        <div className="relative">
-                                            <input
-                                                type="checkbox"
-                                                id="consider-products-toggle"
-                                                className="sr-only peer"
-                                                checked={considerProducts}
-                                                onChange={() => setConsiderProducts(!considerProducts)}
-                                                disabled={isLoading || products.length === 0}
-                                            />
-                                            <div className="block h-6 w-10 rounded-full bg-gray-300 dark:bg-gray-600 peer-checked:bg-indigo-600 transition-colors"></div>
-                                            <div className="dot absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
-                                        </div>
-                                        <span className={`ml-3 transition-colors ${products.length === 0 ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : ''}`}>
-                                            {t('considerProductsLabel')} {products.length === 0 && `(${t('noProductsLabel')})`}
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section className="mt-8" onClick={() => isSidebarOpen && setIsSidebarOpen(false)}>
-                            {isLoading && <LoadingSpinner />}
-                            {response && (
-                                <div className="animate-fade-in">
+                        {activeTab === 'prescription' ? (
+                             <PrescriptionReader 
+                                onSearch={handleSearchFromPrescription}
+                                addToast={addToast}
+                             />
+                        ) : (
+                            <>
+                                <section>
                                     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('conditionSummaryTitle')}</h2>
-                                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{response.summary}</p>
-                                    </div>
-
-                                    <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                        {response.formulas.map((formula) => (
-                                            <FormulaCard 
-                                                key={formula.id} 
-                                                formula={formula}
-                                                onSave={handleToggleSaveFormula}
-                                                isSaved={savedFormulas.some(f => f.id === formula.id)}
-                                                doctorName={doctorName}
-                                                iconDataUrl={formulaIcons[formula.name]}
-                                                isGeneratingIcon={generatingIcons.has(formula.name)}
-                                                onExpand={handleExpandFormula}
-                                                customIconUrl={customIcons[formula.id]}
-                                                onCustomIconChange={handleCustomIconChange}
-                                                onRemoveCustomIcon={handleRemoveCustomIcon}
+                                        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-6 gap-4 items-center">
+                                            <input
+                                                type="text"
+                                                value={disease}
+                                                onChange={(e) => setDisease(e.target.value)}
+                                                placeholder={t('diseaseInputPlaceholder')}
+                                                className="sm:col-span-3 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                                disabled={isLoading}
+                                                aria-label={t('diseaseInputAria')}
                                             />
-                                        ))}
+                                            <input
+                                                type="text"
+                                                value={doctorName}
+                                                onChange={(e) => setDoctorName(e.target.value)}
+                                                placeholder={t('doctorInputPlaceholder')}
+                                                className="sm:col-span-2 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                                disabled={isLoading}
+                                                aria-label={t('doctorInputAria')}
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={isLoading}
+                                                className="sm:col-span-1 w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                        <span>{t('searchingButton')}</span>
+                                                    </>
+                                                ) : (
+                                                    <span>{t('searchButton')}</span>
+                                                )}
+                                            </button>
+                                        </form>
+                                        <div className="mt-4 flex items-center justify-center">
+                                            <label htmlFor="consider-products-toggle" className="flex items-center cursor-pointer select-none text-sm text-gray-700 dark:text-gray-300">
+                                                <div className="relative">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="consider-products-toggle"
+                                                        className="sr-only peer"
+                                                        checked={considerProducts}
+                                                        onChange={() => setConsiderProducts(!considerProducts)}
+                                                        disabled={isLoading || products.length === 0}
+                                                    />
+                                                    <div className="block h-6 w-10 rounded-full bg-gray-300 dark:bg-gray-600 peer-checked:bg-indigo-600 transition-colors"></div>
+                                                    <div className="dot absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
+                                                </div>
+                                                <span className={`ml-3 transition-colors ${products.length === 0 ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : ''}`}>
+                                                    {t('considerProductsLabel')} {products.length === 0 && `(${t('noProductsLabel')})`}
+                                                </span>
+                                            </label>
+                                        </div>
                                     </div>
-                                    <SourceLinks sources={sources} />
-                                </div>
-                            )}
-                        </section>
+                                </section>
+
+                                <section className="mt-8" onClick={() => isSidebarOpen && setIsSidebarOpen(false)}>
+                                    {isLoading && <LoadingSpinner />}
+                                    {response && (
+                                        <div className="animate-fade-in">
+                                            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+                                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('conditionSummaryTitle')}</h2>
+                                                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{response.summary}</p>
+                                            </div>
+
+                                            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                {response.formulas.map((formula) => (
+                                                    <FormulaCard 
+                                                        key={formula.id} 
+                                                        formula={formula}
+                                                        onSave={handleToggleSaveFormula}
+                                                        isSaved={savedFormulas.some(f => f.id === formula.id)}
+                                                        doctorName={doctorName}
+                                                        iconDataUrl={formulaIcons[formula.name]}
+                                                        isGeneratingIcon={generatingIcons.has(formula.name)}
+                                                        onExpand={handleExpandFormula}
+                                                        customIconUrl={customIcons[formula.id]}
+                                                        onCustomIconChange={handleCustomIconChange}
+                                                        onRemoveCustomIcon={handleRemoveCustomIcon}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <SourceLinks sources={sources} />
+                                        </div>
+                                    )}
+                                </section>
+                            </>
+                        )}
                     </div>
 
                     <footer className="text-center mt-12 mb-4 space-y-2">
