@@ -1,6 +1,9 @@
+
 import React from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const LoadingSpinner: React.FC = () => {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
         <svg
@@ -23,7 +26,7 @@ const LoadingSpinner: React.FC = () => {
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
             ></path>
         </svg>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">Buscando informações e gerando fórmulas...</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('loadingText')}</p>
     </div>
   );
 };

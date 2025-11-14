@@ -3,6 +3,7 @@ export interface Formula {
   name: string;
   ingredients: string[];
   instructions: string;
+  averageValue?: string;
 }
 
 export interface GroundingSource {
@@ -29,4 +30,5 @@ export interface Product {
   id: string;
   name: string;
   description: string;
+  category?: string;
 }

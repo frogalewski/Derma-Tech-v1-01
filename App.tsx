@@ -1,8 +1,13 @@
 
 
-import React, { useState, useCallback, useEffect } from 'react';
+
+
+
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getFormulaSuggestionsStream, generateFormulaIcon } from './services/geminiService';
+import * as dbService from './services/dbService';
 import { GeminiResponse, GroundingSource, HistoryItem, Formula, Product } from './types';
+import { useLanguage } from './contexts/LanguageContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import FormulaCard from './components/FormulaCard';
 import SourceLinks from './components/SourceLinks';
@@ -12,223 +17,12 @@ import ProductModal from './components/ProductModal';
 import ToastContainer, { ToastData } from './components/ToastContainer';
 import FormulaDetailModal from './components/FormulaDetailModal';
 import FormulaEditModal from './components/FormulaEditModal';
+import ContactModal from './components/ContactModal';
+import { MailIcon, MenuIcon, PharmacistIcon } from './components/Icons';
 
-// --- Icons ---
-const MenuIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="4" x2="20" y1="12" y2="12" />
-        <line x1="4" x2="20" y1="6" y2="6" />
-        <line x1="4" x2="20" y1="18" y2="18" />
-    </svg>
-);
-
-const MailIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="20" height="16" x="2" y="4" rx="2" />
-        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-    </svg>
-);
-
-const CloseIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 6 6 18" />
-        <path d="m6 6 12 12" />
-    </svg>
-);
-
-const WhatsAppIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path fillRule="evenodd" clipRule="evenodd" d="M18.4,5.6c-1.7-1.7-4-2.6-6.4-2.6C7.3,3,3,7.3,3,12c0,1.8,0.5,3.5,1.5,5l-1.6,5.8l6-1.6c1.4,0.9,3,1.3,4.7,1.3h0c4.7,0,8.5-3.8,8.5-8.5C21,9.6,20.1,7.3,18.4,5.6z M12,20.2L12,20.2c-1.5,0-3-0.5-4.2-1.3l-0.3-0.2l-3.1,0.8l0.8-3l-0.2-0.3c-0.9-1.3-1.4-2.8-1.4-4.3c0-3.9,3.1-7,7-7c1.9,0,3.7,0.8,5,2.1c1.3,1.3,2.1,3,2.1,5C19,17.1,15.9,20.2,12,20.2z M16.4,13.6c-0.2-0.1-1.1-0.5-1.3-0.6c-0.2-0.1-0.3-0.1-0.5,0.1c-0.1,0.2-0.5,0.6-0.6,0.7c-0.1,0.1-0.2,0.2-0.4,0.1c-0.2-0.1-0.8-0.3-1.5-0.9c-0.5-0.5-0.9-1.1-1-1.3c-0.1-0.2,0-0.3,0.1-0.4c0.1-0.1,0.2-0.3,0.4-0.4c0.1-0.1,0.2-0.2,0.2-0.3c0.1-0.1,0-0.3-0.1-0.4c-0.1-0.1-0.5-1.1-0.6-1.5c-0.2-0.4-0.3-0.3-0.5-0.3h-0.4c-0.2,0-0.4,0.1-0.6,0.3c-0.2,0.2-0.7,0.7-0.7,1.6c0,1,0.7,1.9,0.8,2c0.1,0.1,1.4,2.2,3.4,3c0.5,0.2,0.8,0.3,1.1,0.4c0.5,0.1,0.9,0.1,1.2-0.1c0.4-0.2,1.1-0.5,1.3-0.9c0.2-0.4,0.2-0.8,0.1-0.9C16.8,13.8,16.6,13.7,16.4,13.6z"/>
-    </svg>
-);
-
-
-const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [message, setMessage] = useState('');
-    const [errors, setErrors] = useState<{ name?: string; email?: string; message?: string }>({});
-    const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
-
-    useEffect(() => {
-        if (isOpen) {
-            setName('');
-            setEmail('');
-            setMessage('');
-            setErrors({});
-            setStatus('idle');
-        }
-    }, [isOpen]);
-    
-    const validateField = (fieldName: 'name' | 'email' | 'message') => {
-        let errorMsg: string | undefined = undefined;
-        switch (fieldName) {
-            case 'name':
-                if (!name.trim()) errorMsg = 'O nome é obrigatório.';
-                break;
-            case 'email':
-                if (!email.trim()) {
-                    errorMsg = 'O e-mail é obrigatório.';
-                } else if (!/\S+@\S+\.\S+/.test(email)) {
-                    errorMsg = 'O formato do e-mail é inválido.';
-                }
-                break;
-            case 'message':
-                if (!message.trim()) errorMsg = 'A mensagem é obrigatória.';
-                break;
-        }
-        setErrors(prev => ({...prev, [fieldName]: errorMsg}));
-    };
-
-    const validateAll = () => {
-        const newErrors: { name?: string; email?: string; message?: string } = {};
-        if (!name.trim()) newErrors.name = 'O nome é obrigatório.';
-        if (!email.trim()) {
-            newErrors.email = 'O e-mail é obrigatório.';
-        } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = 'O formato do e-mail é inválido.';
-        }
-        if (!message.trim()) newErrors.message = 'A mensagem é obrigatória.';
-        
-        setErrors(newErrors);
-        return Object.values(newErrors).every(v => !v);
-    };
-
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateAll()) return;
-
-        setStatus('sending');
-        // Simulate API call
-        setTimeout(() => {
-            setStatus('success');
-            setTimeout(() => {
-                onClose();
-            }, 2000);
-        }, 1500);
-    };
-
-    if (!isOpen) return null;
-
-    const isSubmittable = name.trim() !== '' && email.trim() !== '' && message.trim() !== '';
-
-    return (
-        <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" 
-            aria-modal="true" 
-            role="dialog"
-            onClick={onClose}
-        >
-            <div 
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg m-4 p-6 relative animate-fade-in"
-                onClick={e => e.stopPropagation()}
-            >
-                <button onClick={onClose} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <CloseIcon className="h-6 w-6" />
-                    <span className="sr-only">Fechar modal</span>
-                </button>
-
-                <div className="flex items-center space-x-3 mb-6">
-                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
-                        <MailIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Fale Conosco</h2>
-                </div>
-
-                {status === 'success' ? (
-                    <div className="text-center py-8">
-                        <p className="text-lg font-medium text-green-600 dark:text-green-400">Mensagem enviada com sucesso!</p>
-                        <p className="text-gray-600 dark:text-gray-400 mt-2">Obrigado por entrar em contato.</p>
-                    </div>
-                ) : (
-                    <form onSubmit={handleSubmit} noValidate>
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome</label>
-                                <input
-                                    type="text"
-                                    id="name"
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    onBlur={() => validateField('name')}
-                                    required
-                                    aria-invalid={!!errors.name}
-                                    aria-describedby="name-error"
-                                    className={`w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border rounded-lg focus:ring-2 focus:border-indigo-500 transition duration-200 ${errors.name ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'}`}
-                                />
-                                {errors.name && <p id="name-error" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.name}</p>}
-                            </div>
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">E-mail</label>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    onBlur={() => validateField('email')}
-                                    required
-                                    aria-invalid={!!errors.email}
-                                    aria-describedby="email-error"
-                                    className={`w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border rounded-lg focus:ring-2 focus:border-indigo-500 transition duration-200 ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'}`}
-                                />
-                                {errors.email && <p id="email-error" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.email}</p>}
-                            </div>
-                            <div>
-                                <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mensagem</label>
-                                <textarea
-                                    id="message"
-                                    rows={4}
-                                    value={message}
-                                    onChange={e => setMessage(e.target.value)}
-                                    onBlur={() => validateField('message')}
-                                    required
-                                    aria-invalid={!!errors.message}
-                                    aria-describedby="message-error"
-                                    className={`w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border rounded-lg focus:ring-2 focus:border-indigo-500 transition duration-200 ${errors.message ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'}`}
-                                ></textarea>
-                                {errors.message && <p id="message-error" className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.message}</p>}
-                            </div>
-                        </div>
-
-                        <div className="mt-6">
-                            <button
-                                type="submit"
-                                disabled={status === 'sending' || !isSubmittable}
-                                className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
-                            >
-                                {status === 'sending' ? (
-                                    <>
-                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <span>Enviando...</span>
-                                    </>
-                                ) : (
-                                    <span>Enviar Mensagem</span>
-                                )}
-                            </button>
-                        </div>
-                    </form>
-                )}
-            </div>
-        </div>
-    );
-};
-
-const PharmacistIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3zm9 11v-1a7 7 0 0 0-7-7h-4a7 7 0 0 0-7 7v1h2v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1z"></path>
-    </svg>
-);
-
-interface ContactModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
 
 const App: React.FC = () => {
+    const { t, language } = useLanguage();
     const [disease, setDisease] = useState('');
     const [doctorName, setDoctorName] = useState('');
     const [response, setResponse] = useState<GeminiResponse | null>(null);
@@ -243,11 +37,13 @@ const App: React.FC = () => {
     const [productToEdit, setProductToEdit] = useState<Product | null>(null);
     const [considerProducts, setConsiderProducts] = useState(false);
     const [formulaIcons, setFormulaIcons] = useState<Record<string, string>>({});
+    const [customIcons, setCustomIcons] = useState<Record<string, string>>({});
     const [generatingIcons, setGeneratingIcons] = useState<Set<string>>(new Set());
     const [toasts, setToasts] = useState<ToastData[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [expandedFormula, setExpandedFormula] = useState<Formula | null>(null);
     const [formulaToEdit, setFormulaToEdit] = useState<Formula | null>(null);
+    const [isDbLoading, setIsDbLoading] = useState(true);
 
 
     const addToast = useCallback((message: string, type: ToastData['type'] = 'error') => {
@@ -258,27 +54,56 @@ const App: React.FC = () => {
     const removeToast = useCallback((id: number) => {
         setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
     }, []);
+
     
     const handleToggleSidebar = () => {
         setIsSidebarOpen(prev => !prev);
     };
 
     useEffect(() => {
-        try {
-            const storedHistory = localStorage.getItem('formulaHistory');
-            if (storedHistory) setHistory(JSON.parse(storedHistory));
-            
-            const storedSavedFormulas = localStorage.getItem('savedFormulas');
-            if (storedSavedFormulas) setSavedFormulas(JSON.parse(storedSavedFormulas));
-            
-            const storedProducts = localStorage.getItem('products');
-            if (storedProducts) setProducts(JSON.parse(storedProducts));
+        const loadDataFromDb = async () => {
+            try {
+                await dbService.initDB();
+                const [
+                    historyData,
+                    savedFormulasData,
+                    productsData,
+                    customIconsData
+                ] = await Promise.all([
+                    dbService.getAllHistory(),
+                    dbService.getAllSavedFormulas(),
+                    dbService.getAllProducts(),
+                    dbService.getSetting<Record<string, string>>('customIcons')
+                ]);
 
-        } catch (e) {
-            console.error("Failed to load data from localStorage:", e);
-            addToast('Não foi possível carregar os dados salvos.', 'error');
-        }
-    }, [addToast]);
+                setHistory(historyData.sort((a, b) => b.timestamp - a.timestamp));
+                setSavedFormulas(savedFormulasData);
+                setProducts(productsData);
+                if (customIconsData) setCustomIcons(customIconsData);
+
+            } catch (e) {
+                console.error("Failed to load data from database:", e);
+                addToast(t('toastErrorDbLoad'), 'error');
+            } finally {
+                setIsDbLoading(false);
+            }
+        };
+
+        loadDataFromDb();
+    }, [addToast, t]);
+
+    const handleCustomIconChange = useCallback(async (formulaId: string, imageDataUrl: string) => {
+        const newIcons = { ...customIcons, [formulaId]: imageDataUrl };
+        setCustomIcons(newIcons);
+        await dbService.setSetting('customIcons', newIcons);
+    }, [customIcons]);
+
+    const handleRemoveCustomIcon = useCallback(async (formulaId: string) => {
+        const newIcons = { ...customIcons };
+        delete newIcons[formulaId];
+        setCustomIcons(newIcons);
+        await dbService.setSetting('customIcons', newIcons);
+    }, [customIcons]);
 
     const generateAndSetIcons = useCallback(async (formulas: Formula[]) => {
         const formulasToGenerate = formulas.filter(f => !formulaIcons[f.name]);
@@ -292,7 +117,7 @@ const App: React.FC = () => {
 
         const iconPromises = formulasToGenerate.map(async (formula) => {
             try {
-                const iconDataUrl = await generateFormulaIcon(formula.name);
+                const iconDataUrl = await generateFormulaIcon(formula.name, language);
                 return { name: formula.name, iconDataUrl };
             } catch (e) {
                 console.error(e);
@@ -318,39 +143,33 @@ const App: React.FC = () => {
             return newSet;
         });
 
-    }, [formulaIcons]);
+    }, [formulaIcons, language]);
 
-    const handleToggleSaveFormula = useCallback((formulaToToggle: Formula) => {
-        setSavedFormulas(prev => {
-            const isAlreadySaved = prev.some(f => f.id === formulaToToggle.id);
-            let newSaved: Formula[];
-            if (isAlreadySaved) {
-                newSaved = prev.filter(f => f.id !== formulaToToggle.id);
-            } else {
-                newSaved = [formulaToToggle, ...prev];
-            }
-            localStorage.setItem('savedFormulas', JSON.stringify(newSaved));
-            return newSaved;
-        });
-    }, []);
+    const handleToggleSaveFormula = useCallback(async (formulaToToggle: Formula) => {
+        const isAlreadySaved = savedFormulas.some(f => f.id === formulaToToggle.id);
+        if (isAlreadySaved) {
+            setSavedFormulas(prev => prev.filter(f => f.id !== formulaToToggle.id));
+            await dbService.unsaveFormula(formulaToToggle.id);
+        } else {
+            setSavedFormulas(prev => [formulaToToggle, ...prev]);
+            await dbService.saveFormula(formulaToToggle);
+        }
+    }, [savedFormulas]);
 
-    const handleClearSavedFormulas = () => {
+    const handleClearSavedFormulas = async () => {
         setSavedFormulas([]);
-        localStorage.removeItem('savedFormulas');
+        await dbService.clearSavedFormulas();
     };
 
-    const handleSaveProduct = useCallback((product: Product) => {
+    const handleSaveProduct = useCallback(async (product: Product) => {
         setProducts(prev => {
             const isEditing = prev.some(p => p.id === product.id);
-            let newProducts: Product[];
             if (isEditing) {
-                newProducts = prev.map(p => p.id === product.id ? product : p);
-            } else {
-                newProducts = [product, ...prev];
+                return prev.map(p => p.id === product.id ? product : p);
             }
-            localStorage.setItem('products', JSON.stringify(newProducts));
-            return newProducts;
+            return [product, ...prev];
         });
+        await dbService.saveProduct(product);
     }, []);
     
     const handleAddProduct = () => {
@@ -363,57 +182,89 @@ const App: React.FC = () => {
         setIsProductModalOpen(true);
     };
 
-    const handleDeleteProduct = useCallback((productId: string) => {
-        setProducts(prev => {
-            const newProducts = prev.filter(p => p.id !== productId);
-            localStorage.setItem('products', JSON.stringify(newProducts));
-            return newProducts;
-        });
+    const handleDeleteProduct = useCallback(async (productId: string) => {
+        setProducts(prev => prev.filter(p => p.id !== productId));
+        await dbService.deleteProduct(productId);
     }, []);
 
-    const handleClearProducts = () => {
+    const handleClearProducts = async () => {
         setProducts([]);
-        localStorage.removeItem('products');
+        await dbService.clearProducts();
     };
 
-    const handleImportProducts = useCallback((newProducts: Omit<Product, 'id'>[]) => {
+    const handleImportProducts = useCallback(async (newProducts: Omit<Product, 'id'>[]) => {
         let addedCount = 0;
         let skippedCount = 0;
         
-        setProducts(prev => {
-            const productsToAdd = newProducts.map((p, index) => ({
-                ...p,
-                id: `${Date.now()}-${index}`
-            }));
-            
-            const existingNames = new Set(prev.map(p => p.name.toLowerCase()));
-            const uniqueNewProducts = productsToAdd.filter(p => {
+        const existingNames = new Set(products.map(p => p.name.toLowerCase()));
+        
+        const productsToAdd = newProducts
+            .map((p, index) => ({ ...p, id: `${Date.now()}-${index}`}))
+            .filter(p => {
                 const alreadyExists = existingNames.has(p.name.toLowerCase());
-                if (alreadyExists) return false;
-                existingNames.add(p.name.toLowerCase()); // Handle duplicates within the CSV file
+                if (alreadyExists) {
+                    skippedCount++;
+                    return false;
+                }
+                existingNames.add(p.name.toLowerCase());
+                addedCount++;
                 return true;
             });
-            
-            addedCount = uniqueNewProducts.length;
-            skippedCount = newProducts.length - addedCount;
-    
-            const updatedProducts = [...uniqueNewProducts, ...prev];
-            localStorage.setItem('products', JSON.stringify(updatedProducts));
-            return updatedProducts;
-        });
-    
-        if (addedCount > 0) {
-            alert(`${addedCount} produto(s) importado(s) com sucesso! ${skippedCount > 0 ? `${skippedCount} duplicado(s) foram ignorados.` : ''}`);
-        } else {
-            alert("Nenhum produto novo para importar. Os produtos no arquivo já podem existir na sua lista.");
+
+        if (productsToAdd.length > 0) {
+            setProducts(prev => [...productsToAdd, ...prev]);
+            for (const product of productsToAdd) {
+                await dbService.saveProduct(product);
+            }
         }
     
-    }, []);
+        if (addedCount > 0) {
+            alert(t('alertProductsImported', { addedCount, skippedCount }));
+        } else {
+            alert(t('alertNoProductsToImport'));
+        }
+    
+    }, [products, t]);
+
+    const handleExportProducts = useCallback(() => {
+        if (products.length === 0) {
+            addToast(t('toastInfoNoProductsToExport'), 'info');
+            return;
+        }
+
+        const escapeCsvField = (field: string): string => {
+            if (/[",\n\r]/.test(field)) {
+                return `"${field.replace(/"/g, '""')}"`;
+            }
+            return field;
+        };
+
+        const headers = ['name', 'description', 'category'];
+        const csvRows = [
+            headers.join(','),
+            ...products.map(p => 
+                [escapeCsvField(p.name), escapeCsvField(p.description), escapeCsvField(p.category || '')].join(',')
+            )
+        ];
+        const csvString = csvRows.join('\r\n');
+
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'produtos_dermatologica.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+    }, [products, addToast, t]);
 
 
     const handleSearch = useCallback(async () => {
         if (!disease.trim()) {
-            addToast('Por favor, insira o nome de uma condição ou doença.');
+            addToast(t('toastErrorEnterCondition'));
             return;
         }
 
@@ -428,7 +279,8 @@ const App: React.FC = () => {
 
             const stream = getFormulaSuggestionsStream(
                 disease,
-                considerProducts ? products : []
+                considerProducts ? products : [],
+                language
             );
             for await (const chunk of stream) {
                 if (chunk.text) {
@@ -442,7 +294,7 @@ const App: React.FC = () => {
             
             const jsonString = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
             if (!jsonString) {
-                throw new Error("A API retornou uma resposta vazia ou incompleta.");
+                throw new Error(t('toastErrorApiEmpty'));
             }
             const parsedResponseRaw: Omit<GeminiResponse, 'formulas'> & { formulas: Omit<Formula, 'id'>[] } = JSON.parse(jsonString);
             const parsedResponse: GeminiResponse = {
@@ -465,27 +317,24 @@ const App: React.FC = () => {
                 sources: collectedSources,
             };
 
-            setHistory(prevHistory => {
-                const newHistory = [newItem, ...prevHistory];
-                localStorage.setItem('formulaHistory', JSON.stringify(newHistory));
-                return newHistory;
-            });
+            setHistory(prevHistory => [newItem, ...prevHistory]);
+            await dbService.addHistoryItem(newItem);
             setSelectedHistoryItemId(newItem.id);
             
         } catch (e) {
             console.error("Failed during search:", e);
             if (e instanceof SyntaxError) {
-                addToast('Ocorreu um erro ao processar a resposta da API (formato inválido).');
+                addToast(t('toastErrorApiParse'));
             } else if (e instanceof Error) {
                 addToast(e.message);
             } else {
-                addToast('Um erro desconhecido ocorreu. Tente novamente.');
+                addToast(t('toastErrorUnknown'));
             }
             setResponse(null);
         } finally {
             setIsLoading(false);
         }
-    }, [disease, doctorName, considerProducts, products, generateAndSetIcons, addToast]);
+    }, [disease, doctorName, considerProducts, products, generateAndSetIcons, addToast, t, language]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -503,10 +352,10 @@ const App: React.FC = () => {
         setIsSidebarOpen(false);
     };
 
-    const handleClearHistory = () => {
+    const handleClearHistory = async () => {
         setHistory([]);
         setSelectedHistoryItemId(null);
-        localStorage.removeItem('formulaHistory');
+        await dbService.clearHistory();
         setDisease('');
         setDoctorName('');
         setResponse(null);
@@ -535,51 +384,60 @@ const App: React.FC = () => {
         setFormulaToEdit(null);
     };
 
-    const handleUpdateFormula = (updatedFormula: Formula) => {
-        setResponse(prev => {
-            if (!prev) return null;
-            return {
-                ...prev,
-                formulas: prev.formulas.map(f => f.id === updatedFormula.id ? updatedFormula : f)
-            };
-        });
+    const handleUpdateFormula = async (updatedFormula: Formula) => {
+        // Update current response if formula is from there
+        if (response && response.formulas.some(f => f.id === updatedFormula.id)) {
+            setResponse(prev => prev ? { ...prev, formulas: prev.formulas.map(f => f.id === updatedFormula.id ? updatedFormula : f) } : null);
+        }
 
+        // Update history item
         if (selectedHistoryItemId) {
-            setHistory(prev => {
-                const newHistory = prev.map(item => {
-                    if (item.id === selectedHistoryItemId) {
-                        return {
-                            ...item,
-                            response: {
-                                ...item.response,
-                                formulas: item.response.formulas.map(f => f.id === updatedFormula.id ? updatedFormula : f)
-                            }
-                        };
+            const itemToUpdate = history.find(item => item.id === selectedHistoryItemId);
+            if (itemToUpdate) {
+                const updatedItem = {
+                    ...itemToUpdate,
+                    response: {
+                        ...itemToUpdate.response,
+                        formulas: itemToUpdate.response.formulas.map(f => f.id === updatedFormula.id ? updatedFormula : f)
                     }
-                    return item;
-                });
-                localStorage.setItem('formulaHistory', JSON.stringify(newHistory));
-                return newHistory;
-            });
+                };
+                setHistory(prev => prev.map(item => item.id === selectedHistoryItemId ? updatedItem : item));
+                await dbService.updateHistoryItem(updatedItem);
+            }
         }
         
-        setSavedFormulas(prev => {
-            const isSaved = prev.some(f => f.id === updatedFormula.id);
-            if (isSaved) {
-                const newSaved = prev.map(f => f.id === updatedFormula.id ? updatedFormula : f);
-                localStorage.setItem('savedFormulas', JSON.stringify(newSaved));
-                return newSaved;
-            }
-            return prev;
-        });
+        // Update saved formulas
+        if (savedFormulas.some(f => f.id === updatedFormula.id)) {
+            setSavedFormulas(prev => prev.map(f => f.id === updatedFormula.id ? updatedFormula : f));
+            await dbService.updateSavedFormula(updatedFormula);
+        }
 
         handleCloseEditModal();
     };
 
+    if (isDbLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="flex flex-col items-center">
+                    <Logo className="h-16 w-auto text-gray-800 dark:text-gray-200 mb-4" />
+                     <svg
+                        className="animate-spin h-8 w-8 text-indigo-600"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                    >
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-100" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-4">{t('loadingDb')}</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
-            <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+            <div className="min-h-screen flex text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900">
                 <HistorySidebar 
                     history={history}
                     onItemClick={handleHistoryItemClick}
@@ -594,6 +452,7 @@ const App: React.FC = () => {
                     onDeleteProduct={handleDeleteProduct}
                     onClearProducts={handleClearProducts}
                     onImportProducts={handleImportProducts}
+                    onExportProducts={handleExportProducts}
                     isSidebarOpen={isSidebarOpen}
                 />
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto h-screen">
@@ -602,9 +461,9 @@ const App: React.FC = () => {
                             <button
                                 onClick={handleToggleSidebar}
                                 className="absolute top-1/2 -translate-y-1/2 left-0 p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                aria-label="Alternar painel de controle"
+                                aria-label={t('toggleSidebarAria')}
                             >
-                                <MenuIcon className="h-6 w-6" />
+                                <MenuIcon className="h-7 w-7" />
                             </button>
                             <div className="flex justify-center items-center">
                                 <Logo className="h-16 w-auto text-gray-800 dark:text-gray-200" />
@@ -612,25 +471,25 @@ const App: React.FC = () => {
                         </header>
 
                         <section>
-                            <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                                <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-5 gap-4 items-center">
+                            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+                                <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-6 gap-4 items-center">
                                     <input
                                         type="text"
                                         value={disease}
                                         onChange={(e) => setDisease(e.target.value)}
-                                        placeholder="Ex: Eczema, Rosácea..."
-                                        className="sm:col-span-2 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                        placeholder={t('diseaseInputPlaceholder')}
+                                        className="sm:col-span-3 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
                                         disabled={isLoading}
-                                        aria-label="Condição ou doença"
+                                        aria-label={t('diseaseInputAria')}
                                     />
                                      <input
                                         type="text"
                                         value={doctorName}
                                         onChange={(e) => setDoctorName(e.target.value)}
-                                        placeholder="Nome do Médico (Opcional)"
+                                        placeholder={t('doctorInputPlaceholder')}
                                         className="sm:col-span-2 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
                                         disabled={isLoading}
-                                        aria-label="Nome do Médico"
+                                        aria-label={t('doctorInputAria')}
                                     />
                                     <button
                                         type="submit"
@@ -639,14 +498,14 @@ const App: React.FC = () => {
                                     >
                                         {isLoading ? (
                                             <>
-                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                 </svg>
-                                                <span>Buscando</span>
+                                                <span>{t('searchingButton')}</span>
                                             </>
                                         ) : (
-                                            <span>Buscar</span>
+                                            <span>{t('searchButton')}</span>
                                         )}
                                     </button>
                                 </form>
@@ -665,7 +524,7 @@ const App: React.FC = () => {
                                             <div className="dot absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
                                         </div>
                                         <span className={`ml-3 transition-colors ${products.length === 0 ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : ''}`}>
-                                            Considerar meus produtos cadastrados {products.length === 0 && '(Nenhum produto)'}
+                                            {t('considerProductsLabel')} {products.length === 0 && `(${t('noProductsLabel')})`}
                                         </span>
                                     </label>
                                 </div>
@@ -676,8 +535,8 @@ const App: React.FC = () => {
                             {isLoading && <LoadingSpinner />}
                             {response && (
                                 <div className="animate-fade-in">
-                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Resumo da Condição</h2>
+                                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('conditionSummaryTitle')}</h2>
                                         <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{response.summary}</p>
                                     </div>
 
@@ -692,6 +551,9 @@ const App: React.FC = () => {
                                                 iconDataUrl={formulaIcons[formula.name]}
                                                 isGeneratingIcon={generatingIcons.has(formula.name)}
                                                 onExpand={handleExpandFormula}
+                                                customIconUrl={customIcons[formula.id]}
+                                                onCustomIconChange={handleCustomIconChange}
+                                                onRemoveCustomIcon={handleRemoveCustomIcon}
                                             />
                                         ))}
                                     </div>
@@ -702,14 +564,17 @@ const App: React.FC = () => {
                     </div>
 
                     <footer className="text-center mt-12 mb-4 space-y-2">
-                         <div className="flex items-center justify-center space-x-4 text-sm">
-                            <button onClick={() => setIsContactModalOpen(true)} className="text-indigo-600 dark:text-indigo-400 hover:underline flex items-center space-x-1">
-                                <MailIcon className="h-4 w-4" />
-                                <span>Fale Conosco</span>
+                         <div className="flex items-center justify-center space-x-4">
+                            <button 
+                                onClick={() => setIsContactModalOpen(true)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                                <MailIcon className="h-8 w-8" />
+                                <span>{t('contactUs')}</span>
                             </button>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Dermatológica &copy; {new Date().getFullYear()} - Fórmulas geradas por IA.
+                           {t('footerText', { year: new Date().getFullYear() })}
                         </p>
                     </footer>
                 </main>
@@ -719,9 +584,9 @@ const App: React.FC = () => {
 
             <button
                 onClick={handleWhatsAppPharmacist}
-                className="fixed bottom-6 right-6 z-40 w-16 h-16 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-green-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900 focus:ring-green-500"
-                aria-label="Fale com a Farmacêutica via WhatsApp"
-                title="Fale com a Farmacêutica"
+                className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-green-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-green-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900 focus:ring-green-500"
+                aria-label={t('talkToPharmacistAria')}
+                title={t('talkToPharmacistTitle')}
             >
                 <PharmacistIcon className="w-8 h-8" />
             </button>
@@ -742,6 +607,10 @@ const App: React.FC = () => {
                     isSaved={savedFormulas.some(f => f.id === expandedFormula.id)}
                     onSave={handleToggleSaveFormula}
                     onEdit={handleOpenEditModal}
+                    iconDataUrl={formulaIcons[expandedFormula.name]}
+                    customIconUrl={customIcons[expandedFormula.id]}
+                    onCustomIconChange={handleCustomIconChange}
+                    onRemoveCustomIcon={handleRemoveCustomIcon}
                 />
             )}
 

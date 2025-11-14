@@ -1,17 +1,7 @@
+
+
 import React, { useEffect, useState } from 'react';
-
-// Icons
-const ErrorIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-);
-
-const CloseIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-);
+import { CloseIcon, ErrorIcon, InfoIcon, SuccessIcon } from './Icons';
 
 interface ToastProps {
   id: number;
@@ -23,17 +13,15 @@ interface ToastProps {
 const toastConfig = {
     error: {
         bg: 'bg-red-500',
-        icon: <ErrorIcon className="h-6 w-6 text-white" />,
+        icon: <ErrorIcon className="h-7 w-7 text-white" />,
     },
     success: {
-        // Placeholder for future success toasts
         bg: 'bg-green-500',
-        icon: <div />, 
+        icon: <SuccessIcon className="h-7 w-7 text-white" />, 
     },
     info: {
-        // Placeholder for future info toasts
         bg: 'bg-blue-500',
-        icon: <div />,
+        icon: <InfoIcon className="h-7 w-7 text-white" />,
     },
 };
 
@@ -71,7 +59,7 @@ const Toast: React.FC<ToastProps> = ({ id, message, type, onClose }) => {
                 aria-label="Fechar notificação"
                 className="absolute top-1/2 right-2 -translate-y-1/2 p-1 rounded-md text-white/70 hover:text-white hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white"
             >
-                <CloseIcon className="h-5 w-5" />
+                <CloseIcon className="h-6 w-6" />
             </button>
         </div>
     );

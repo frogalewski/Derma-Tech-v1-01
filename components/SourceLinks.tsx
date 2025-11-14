@@ -1,19 +1,16 @@
 
+
 import React from 'react';
 import { GroundingSource } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
+import { LinkIcon } from './Icons';
 
 interface SourceLinksProps {
     sources: GroundingSource[];
 }
 
-const LinkIcon: React.FC<{ className?: string }> = ({ className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path>
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path>
-    </svg>
-);
-
 const SourceLinks: React.FC<SourceLinksProps> = ({ sources }) => {
+    const { t } = useLanguage();
     if (sources.length === 0) {
         return null;
     }
@@ -21,11 +18,11 @@ const SourceLinks: React.FC<SourceLinksProps> = ({ sources }) => {
     return (
         <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
-                <LinkIcon className="h-5 w-5 mr-2 text-gray-500"/>
-                Fontes da Pesquisa
+                <LinkIcon className="h-6 w-6 mr-2 text-gray-500"/>
+                {t('researchSources')}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Resultados baseados em informações do Google Search.
+                {t('googleSearchDisclaimer')}
             </p>
             <div className="mt-4 space-y-4">
                 {sources.map((source, index) => (
