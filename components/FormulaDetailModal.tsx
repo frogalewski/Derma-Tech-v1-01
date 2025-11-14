@@ -8,6 +8,7 @@ import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, DownloadIcon, EditIcon, P
 interface FormulaDetailModalProps {
   formula: Formula;
   doctorName?: string;
+  patientName?: string;
   onClose: () => void;
   isSaved: boolean;
   onSave: (formula: Formula) => void;
@@ -16,12 +17,13 @@ interface FormulaDetailModalProps {
   customIconUrl?: string;
   onCustomIconChange: (formulaId: string, imageDataUrl: string) => void;
   onRemoveCustomIcon: (formulaId: string) => void;
+  createdAt?: number | null;
 }
 
-const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctorName, onClose, isSaved, onSave, onEdit, iconDataUrl, customIconUrl, onCustomIconChange, onRemoveCustomIcon }) => {
+const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctorName, patientName, onClose, isSaved, onSave, onEdit, iconDataUrl, customIconUrl, onCustomIconChange, onRemoveCustomIcon, createdAt }) => {
     const [copiedText, setCopiedText] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
 
     const handleCopy = (textToCopy: string) => {
         navigator.clipboard.writeText(textToCopy).then(() => {
@@ -35,6 +37,7 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
     const handleExportTxt = () => {
         let content = `${t('formulaNameLabel')}: ${formula.name}\n`;
         if (doctorName) content += `${t('doctorLabel')}: ${doctorName}\n`;
+        if (patientName) content += `${t('patientLabel')}: ${patientName}\n`;
         if (formula.averageValue) content += `${t('averageValueLabel')}: ${formula.averageValue}\n`;
         content += `\n${t('ingredientsLabel')}:\n${formula.ingredients.map(ing => `- ${ing}`).join('\n')}\n\n` +
                    `${t('instructionsLabel')}:\n${formula.instructions}`;
@@ -138,8 +141,16 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
                             </div>
                         </div>
                         <div>
-                             <h2 className="text-xl font-bold text-gray-900 dark:text-white pt-1" id="modal-title">{formula.name}</h2>
-                             {doctorName && <p className="text-sm text-gray-500 dark:text-gray-400">{t('doctorLabel')}: {doctorName}</p>}
+                             <h2 className="text-xl font-bold text-gray-900 dark:text-white" id="modal-title">{formula.name}</h2>
+                            <div className="mt-1 space-y-0.5">
+                                {doctorName && <p className="text-sm text-gray-500 dark:text-gray-400">{t('doctorLabel')}: {doctorName}</p>}
+                                {patientName && <p className="text-sm text-gray-500 dark:text-gray-400">{t('patientLabel')}: {patientName}</p>}
+                                {createdAt && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {t('generatedOn')} {new Date(createdAt).toLocaleString(language, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                                )}
+                            </div>
                              {formula.averageValue && (
                                 <div className="mt-2 flex items-center text-sm text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/50 px-2 py-1 rounded-md">
                                     <TagIcon className="h-5 w-5 mr-1.5 flex-shrink-0" />

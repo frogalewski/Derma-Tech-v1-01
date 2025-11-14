@@ -1,4 +1,4 @@
-import { HistoryItem, Formula, Product } from '../types';
+import { HistoryItem, Formula, Product, SavedPrescription } from '../types';
 
 const DB_NAME = 'DermatologicaDB';
 const DB_VERSION = 1;
@@ -6,7 +6,8 @@ const STORES = {
     HISTORY: 'history',
     SAVED_FORMULAS: 'savedFormulas',
     PRODUCTS: 'products',
-    SETTINGS: 'settings' // For key-value pairs
+    SETTINGS: 'settings', // For key-value pairs
+    SAVED_PRESCRIPTIONS: 'savedPrescriptions'
 };
 
 let db: IDBDatabase;
@@ -50,6 +51,9 @@ export const initDB = (): Promise<IDBDatabase> => {
             }
             if (!tempDb.objectStoreNames.contains(STORES.SETTINGS)) {
                 tempDb.createObjectStore(STORES.SETTINGS, { keyPath: 'key' });
+            }
+            if (!tempDb.objectStoreNames.contains(STORES.SAVED_PRESCRIPTIONS)) {
+                tempDb.createObjectStore(STORES.SAVED_PRESCRIPTIONS, { keyPath: 'id' });
             }
         };
     });
@@ -112,3 +116,9 @@ export const getSetting = async <T>(key: string): Promise<T | null> => {
 };
 export const setSetting = (key: string, value: any) => put(STORES.SETTINGS, { key, value });
 export const deleteSetting = (key: string) => remove(STORES.SETTINGS, key);
+
+// Saved Prescriptions functions
+export const getAllSavedPrescriptions = () => getAll<SavedPrescription>(STORES.SAVED_PRESCRIPTIONS);
+export const savePrescription = (item: SavedPrescription) => put(STORES.SAVED_PRESCRIPTIONS, item);
+export const deletePrescription = (id: string) => remove(STORES.SAVED_PRESCRIPTIONS, id);
+export const clearSavedPrescriptions = () => clear(STORES.SAVED_PRESCRIPTIONS);

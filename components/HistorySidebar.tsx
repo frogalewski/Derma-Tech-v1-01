@@ -1,12 +1,8 @@
-
-
-
-
-import React, { useRef } from 'react';
-import { HistoryItem, Formula, Product } from '../types';
+import React, { useRef, useState } from 'react';
+import { HistoryItem, Formula, Product, SavedPrescription } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import { ActiveTab } from '../App';
-import { BookmarkIcon, ClockIcon, CloseIcon, CogIcon, DownloadIcon, EditIcon, ImportIcon, PackageIcon, PlusIcon, ScanIcon, TrashIcon } from './Icons';
+import { BookmarkIcon, ClockIcon, CloseIcon, CogIcon, DownloadIcon, EditIcon, ImportIcon, PackageIcon, PlusIcon, ScanIcon, TrashIcon, ClipboardListIcon, ChevronDownIcon } from './Icons';
 
 interface HistorySidebarProps {
   history: HistoryItem[];
@@ -23,6 +19,10 @@ interface HistorySidebarProps {
   onClearProducts: () => void;
   onImportProducts: (products: Omit<Product, 'id'>[]) => void;
   onExportProducts: () => void;
+  savedPrescriptions: SavedPrescription[];
+  onSavedPrescriptionClick: (item: SavedPrescription) => void;
+  onDeleteSavedPrescription: (id: string) => void;
+  onClearSavedPrescriptions: () => void;
   isSidebarOpen: boolean;
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
@@ -32,10 +32,12 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
     history, onItemClick, onClearHistory, selectedItemId,
     savedFormulas, onRemoveSaved, onClearSaved,
     products, onAddProduct, onEditProduct, onDeleteProduct, onClearProducts, onImportProducts, onExportProducts,
+    savedPrescriptions, onSavedPrescriptionClick, onDeleteSavedPrescription, onClearSavedPrescriptions,
     isSidebarOpen, activeTab, onTabChange
 }) => {
     const productsFileInputRef = useRef<HTMLInputElement>(null);
     const { t, language, setLanguage } = useLanguage();
+    const [expandedSavedFormulaId, setExpandedSavedFormulaId] = useState<string | null>(null);
 
     const handleImportProductsClick = () => {
         productsFileInputRef.current?.click();
@@ -127,47 +129,48 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
 
       <div className={`flex flex-col flex-grow min-h-0 transition-opacity duration-200 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="p-2 border-b border-gray-200 dark:border-gray-700">
-            <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-3 gap-2">
                 <button 
                     onClick={() => onTabChange('history')}
                     title={t('history')}
-                    className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'history' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                    className={`p-4 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'history' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
-                    <ClockIcon className="h-6 w-6" />
+                    <ClockIcon className="h-8 w-8" />
                 </button>
                  <button 
                     onClick={() => onTabChange('prescription')}
                     title={t('prescriptionReader')}
-                    className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'prescription' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                    className={`p-4 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'prescription' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
-                    <ScanIcon className="h-6 w-6" />
+                    <ScanIcon className="h-8 w-8" />
                 </button>
                 <button 
                     onClick={() => onTabChange('saved')}
                     title={t('saved')}
-                    className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${activeTab === 'saved' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                    className={`p-4 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${activeTab === 'saved' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
-                    <BookmarkIcon className="h-6 w-6" />
-                    <span className={`text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center ${activeTab === 'saved' ? 'bg-white text-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                        {savedFormulas.length}
-                    </span>
+                    <BookmarkIcon className="h-8 w-8" />
+                </button>
+                 <button 
+                    onClick={() => onTabChange('savedPrescriptions')}
+                    title={t('savedPrescriptions')}
+                    className={`p-4 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'savedPrescriptions' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                >
+                    <ClipboardListIcon className="h-8 w-8" />
                 </button>
                 <button 
                     onClick={() => onTabChange('products')}
                     title={t('products')}
-                    className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${activeTab === 'products' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                    className={`p-4 text-sm font-semibold rounded-md transition-colors flex items-center justify-center gap-2 ${activeTab === 'products' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
-                    <PackageIcon className="h-6 w-6" />
-                    <span className={`text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center ${activeTab === 'products' ? 'bg-white text-indigo-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
-                        {products.length}
-                    </span>
+                    <PackageIcon className="h-8 w-8" />
                 </button>
                 <button
                     onClick={() => onTabChange('settings')}
                     title={t('settings')}
-                    className={`p-2 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'settings' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                    className={`p-4 text-sm font-semibold rounded-md transition-colors flex items-center justify-center ${activeTab === 'settings' ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                 >
-                    <CogIcon className="h-6 w-6" />
+                    <CogIcon className="h-8 w-8" />
                 </button>
             </div>
         </div>
@@ -188,6 +191,11 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                             className={`w-full text-left p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 ${item.id === selectedItemId ? 'bg-indigo-50 dark:bg-indigo-900/50' : ''}`}
                             >
                             <p className={`font-medium capitalize truncate ${item.id === selectedItemId ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-gray-200'}`}>{item.disease}</p>
+                            {item.patientName && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                                    {t('patientLabel')}: {item.patientName}
+                                </p>
+                            )}
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 {new Date(item.timestamp).toLocaleString(language)}
                             </p>
@@ -209,11 +217,32 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                 ) : (
                     <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                         {savedFormulas.map((formula) => (
-                            <li key={formula.name} className="p-4 flex justify-between items-center group">
-                                <span className="font-medium text-gray-800 dark:text-gray-200 truncate pr-2">{formula.name}</span>
-                                <button onClick={() => onRemoveSaved(formula)} title={t('removeFromSaved')} className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-md transition-opacity">
-                                    <CloseIcon className="h-6 w-6" />
-                                </button>
+                            <li key={formula.id} className="group">
+                                <div className="p-4">
+                                    <div className="flex justify-between items-center">
+                                        <button
+                                            onClick={() => setExpandedSavedFormulaId(prevId => prevId === formula.id ? null : formula.id)}
+                                            className="flex-grow flex items-center justify-between text-left pr-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-md"
+                                            aria-expanded={expandedSavedFormulaId === formula.id}
+                                        >
+                                            <span className="font-medium text-gray-800 dark:text-gray-200 truncate pr-2">{formula.name}</span>
+                                            <ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${expandedSavedFormulaId === formula.id ? 'transform rotate-180' : ''}`} />
+                                        </button>
+                                        <button onClick={() => onRemoveSaved(formula)} title={t('removeFromSaved')} className="flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-md transition-opacity">
+                                            <CloseIcon className="h-6 w-6" />
+                                        </button>
+                                    </div>
+                                    {expandedSavedFormulaId === formula.id && (
+                                        <div className="mt-3 pl-1 animate-fade-in">
+                                            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">{t('ingredientsLabel')}</h4>
+                                            <ul className="mt-2 space-y-1 text-sm text-gray-600 dark:text-gray-400 border-l-2 border-gray-200 dark:border-gray-600 pl-3">
+                                                {formula.ingredients.map((ing, index) => (
+                                                    <li key={index}>{ing}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
                             </li>
                         ))}
                     </ul>
@@ -277,6 +306,43 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                     )}
                 </>
             )}
+             {activeTab === 'savedPrescriptions' && (
+                <>
+                {savedPrescriptions.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                        <ClipboardListIcon className="h-10 w-10 mx-auto text-gray-400 mb-2"/>
+                        <p>{t('noSavedPrescriptions')}</p>
+                        <p className="text-sm">{t('savePrescriptionToView')}</p>
+                    </div>
+                ) : (
+                    <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {savedPrescriptions.map((item) => (
+                            <li key={item.id} className="group flex items-center justify-between">
+                                <button
+                                    onClick={() => onSavedPrescriptionClick(item)}
+                                    className="flex-grow w-full text-left p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-3"
+                                >
+                                    <img src={item.imagePreviewUrl} alt="Preview" className="h-10 w-10 rounded-md object-cover flex-shrink-0 bg-gray-200" />
+                                    <div className="flex-grow overflow-hidden">
+                                        <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.data.patientName || t('unknownPatient')}</p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                            {new Date(item.timestamp).toLocaleString(language)}
+                                        </p>
+                                    </div>
+                                </button>
+                                <button 
+                                    onClick={() => onDeleteSavedPrescription(item.id)} 
+                                    title={t('deleteSavedPrescription')} 
+                                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-2 rounded-md transition-opacity mr-2"
+                                >
+                                    <TrashIcon className="h-5 w-5" />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+                </>
+            )}
              {activeTab === 'settings' && (
                 <div className="p-4 space-y-6">
                      <div>
@@ -293,7 +359,6 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                     </div>
                 </div>
             )}
-            {/* Hiding tab-specific content when prescription tab is active from the main panel for simplicity */}
             {activeTab === 'prescription' && (
                  <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                     <ScanIcon className="h-10 w-10 mx-auto text-gray-400 mb-2"/>
@@ -329,6 +394,15 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                 >
                     <TrashIcon className="h-6 w-6"/>
                     <span>{t('clearProducts')}</span>
+                </button>
+            )}
+             {activeTab === 'savedPrescriptions' && savedPrescriptions.length > 0 && (
+                <button
+                    onClick={onClearSavedPrescriptions}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:bg-gray-400 transition-colors duration-200"
+                >
+                    <TrashIcon className="h-6 w-6"/>
+                    <span>{t('clearSavedPrescriptions')}</span>
                 </button>
             )}
         </div>

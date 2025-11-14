@@ -11,6 +11,8 @@ interface FormulaCardProps {
   onSave: (formula: Formula) => void;
   isSaved: boolean;
   doctorName?: string;
+  patientName?: string;
+  createdAt?: number | null;
   iconDataUrl?: string;
   isGeneratingIcon?: boolean;
   onExpand: (formula: Formula) => void;
@@ -19,10 +21,10 @@ interface FormulaCardProps {
   onRemoveCustomIcon: (formulaId: string) => void;
 }
 
-const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doctorName, iconDataUrl, isGeneratingIcon, onExpand, customIconUrl, onCustomIconChange, onRemoveCustomIcon }) => {
+const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doctorName, patientName, createdAt, iconDataUrl, isGeneratingIcon, onExpand, customIconUrl, onCustomIconChange, onRemoveCustomIcon }) => {
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const handleCopy = (textToCopy: string) => {
     navigator.clipboard.writeText(textToCopy).then(() => {
@@ -37,6 +39,9 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
     let content = `${t('formulaNameLabel')}: ${formula.name}\n`;
     if (doctorName) {
         content += `${t('doctorLabel')}: ${doctorName}\n`;
+    }
+    if (patientName) {
+        content += `${t('patientLabel')}: ${patientName}\n`;
     }
     if (formula.averageValue) {
         content += `${t('averageValueLabel')}: ${formula.averageValue}\n`;
@@ -143,6 +148,24 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
             </div>
             <div className="flex-1">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{formula.name}</h3>
+                {(doctorName || patientName || createdAt) && (
+                    <div className="mt-1.5 space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                        {doctorName && <p className="truncate">{t('doctorLabel')}: {doctorName}</p>}
+                        {patientName && <p className="truncate">{t('patientLabel')}: {patientName}</p>}
+                        {createdAt && (
+                            <p>
+                                {t('generatedOn')}{' '}
+                                {new Date(createdAt).toLocaleString(language, {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+                            </p>
+                        )}
+                    </div>
+                )}
                 {formula.averageValue && (
                     <div className="mt-2.5 inline-flex items-center text-xs font-medium text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-500/20 px-2.5 py-1 rounded-full border border-green-200 dark:border-green-500/30">
                         <TagIcon className="h-5 w-5 mr-1.5" />

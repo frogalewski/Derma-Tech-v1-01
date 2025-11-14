@@ -1,6 +1,3 @@
-
-
-
 const ptBR = {
   // App.tsx
   toastErrorDbLoad: 'Não foi possível carregar os dados do banco de dados local.',
@@ -12,8 +9,12 @@ const ptBR = {
   toggleSidebarAria: 'Alternar painel de controle',
   diseaseInputPlaceholder: 'Ex: Eczema, Rosácea...',
   doctorInputPlaceholder: 'Nome do Médico (Opcional)',
+  patientInputPlaceholder: 'Nome do Paciente (Opcional)',
   diseaseInputAria: 'Condição ou doença',
   doctorInputAria: 'Nome do Médico',
+  patientInputAria: 'Nome do Paciente',
+  pinDoctorNameTitle: 'Fixar nome do médico',
+  unpinDoctorNameTitle: 'Desafixar nome do médico',
   searchingButton: 'Buscando',
   searchButton: 'Buscar',
   considerProductsLabel: 'Considerar meus produtos cadastrados',
@@ -26,6 +27,7 @@ const ptBR = {
   alertProductsImported: '{{addedCount}} produto(s) importado(s) com sucesso! {{skippedCount}} duplicado(s) foram ignorados.',
   alertNoProductsToImport: 'Nenhum produto novo para importar. Os produtos no arquivo já podem existir na sua lista.',
   toastInfoNoProductsToExport: 'Nenhum produto para exportar.',
+  toastReadingSaved: 'Leitura da receita salva com sucesso!',
 
   // ContactModal.tsx
   closeModal: 'Fechar modal',
@@ -36,7 +38,7 @@ const ptBR = {
   // HistorySidebar.tsx
   controlPanel: 'Painel de Controle',
   history: 'Histórico',
-  saved: 'Salvos',
+  saved: 'Fórmulas Salvas',
   products: 'Produtos',
   settings: 'Configurações',
   prescriptionReader: 'Ler Receita',
@@ -63,6 +65,12 @@ const ptBR = {
   alertCsvNoNameColumn: "O arquivo CSV deve conter uma coluna 'name'.",
   alertNoValidProducts: 'Nenhum produto válido encontrado no arquivo.',
   alertCsvError: 'Ocorreu um erro ao processar o arquivo. Verifique o formato e tente novamente.',
+  savedPrescriptions: 'Receitas Salvas',
+  noSavedPrescriptions: 'Nenhuma receita salva.',
+  savePrescriptionToView: 'Salve leituras de receitas para vê-las aqui.',
+  unknownPatient: 'Paciente não identificado',
+  deleteSavedPrescription: 'Excluir leitura de receita',
+  clearSavedPrescriptions: 'Limpar Receitas Salvas',
 
   // FormulaCard.tsx & FormulaDetailModal.tsx
   uploadIconFor: 'Carregar ícone para {{formulaName}}',
@@ -95,6 +103,8 @@ const ptBR = {
   editButton: 'Editar',
   exportButton: 'Exportar',
   averageValueLabel: 'Valor Médio',
+  patientLabel: 'Paciente',
+  generatedOn: 'Gerado em',
 
   // FormulaEditModal.tsx
   editFormulaTitle: 'Editar Fórmula',
@@ -132,7 +142,6 @@ const ptBR = {
   analyzing: 'Analisando...',
   analyzeButton: 'Analisar Receita',
   analysisResults: 'Resultados da Análise',
-  patientLabel: 'Paciente',
   dateLabel: 'Data',
   prescribedItems: 'Itens Prescritos',
   noItemsFound: 'Nenhum item encontrado.',
@@ -143,10 +152,12 @@ const ptBR = {
   toastErrorCamera: 'Não foi possível acessar a câmera.',
   quoteOnWhatsApp: 'Orçar no WhatsApp',
   prescriptionWhatsAppHeader: 'Olá! Gostaria de um orçamento para a seguinte receita:',
+  saveReading: 'Salvar Leitura',
+  readingSaved: 'Leitura Salva',
   
   // Prompts for Gemini API
   prompts: {
-    main: `Para a condição "{diseaseName}", sugira de 2 a 4 fórmulas manipuladas.
+    main: `Para a condição "{diseaseName}", sugira de 5 a 7 fórmulas manipuladas.
 Seu público-alvo são farmacêuticos e médicos, então use terminologia técnica apropriada.
 {productsPromptPart}
 
@@ -185,8 +196,12 @@ const en = {
   toggleSidebarAria: 'Toggle control panel',
   diseaseInputPlaceholder: 'E.g., Eczema, Rosacea...',
   doctorInputPlaceholder: "Doctor's Name (Optional)",
+  patientInputPlaceholder: "Patient's Name (Optional)",
   diseaseInputAria: 'Condition or disease',
   doctorInputAria: "Doctor's Name",
+  patientInputAria: "Patient's Name",
+  pinDoctorNameTitle: "Pin doctor's name",
+  unpinDoctorNameTitle: "Unpin doctor's name",
   searchingButton: 'Searching',
   searchButton: 'Search',
   considerProductsLabel: 'Consider my registered products',
@@ -199,6 +214,7 @@ const en = {
   alertProductsImported: '{{addedCount}} product(s) imported successfully! {{skippedCount}} duplicate(s) were ignored.',
   alertNoProductsToImport: 'No new products to import. The products in the file may already exist in your list.',
   toastInfoNoProductsToExport: 'No products to export.',
+  toastReadingSaved: 'Prescription reading saved successfully!',
 
   // ContactModal.tsx
   closeModal: 'Close modal',
@@ -209,7 +225,7 @@ const en = {
   // HistorySidebar.tsx
   controlPanel: 'Control Panel',
   history: 'History',
-  saved: 'Saved',
+  saved: 'Saved Formulas',
   products: 'Products',
   settings: 'Settings',
   prescriptionReader: 'Read Prescription',
@@ -236,6 +252,12 @@ const en = {
   alertCsvNoNameColumn: "The CSV file must contain a 'name' column.",
   alertNoValidProducts: 'No valid products found in the file.',
   alertCsvError: 'An error occurred while processing the file. Check the format and try again.',
+  savedPrescriptions: 'Saved Prescriptions',
+  noSavedPrescriptions: 'No saved prescriptions.',
+  savePrescriptionToView: 'Save prescription readings to view them here.',
+  unknownPatient: 'Unidentified Patient',
+  deleteSavedPrescription: 'Delete saved prescription',
+  clearSavedPrescriptions: 'Clear Saved Prescriptions',
 
   // FormulaCard.tsx & FormulaDetailModal.tsx
   uploadIconFor: 'Upload icon for {{formulaName}}',
@@ -268,6 +290,8 @@ const en = {
   editButton: 'Edit',
   exportButton: 'Export',
   averageValueLabel: 'Average Value',
+  patientLabel: 'Patient',
+  generatedOn: 'Generated on',
 
   // FormulaEditModal.tsx
   editFormulaTitle: 'Edit Formula',
@@ -305,7 +329,6 @@ const en = {
   analyzing: 'Analyzing...',
   analyzeButton: 'Analyze Prescription',
   analysisResults: 'Analysis Results',
-  patientLabel: 'Patient',
   dateLabel: 'Date',
   prescribedItems: 'Prescribed Items',
   noItemsFound: 'No items found.',
@@ -316,10 +339,12 @@ const en = {
   toastErrorCamera: 'Could not access the camera.',
   quoteOnWhatsApp: 'Quote on WhatsApp',
   prescriptionWhatsAppHeader: 'Hello! I would like a quote for the following prescription:',
+  saveReading: 'Save Reading',
+  readingSaved: 'Reading Saved',
 
   // Prompts for Gemini API
   prompts: {
-    main: `For the condition "{diseaseName}", suggest 2 to 4 compounded formulas.
+    main: `For the condition "{diseaseName}", suggest 5 to 7 compounded formulas.
 Your target audience is pharmacists and doctors, so use appropriate technical terminology.
 {productsPromptPart}
 

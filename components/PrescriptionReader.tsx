@@ -1,15 +1,19 @@
 
 
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { readPrescription } from '../services/geminiService';
 import { useLanguage } from '../contexts/LanguageContext';
-import { PrescriptionData } from '../types';
-import { CameraIcon, CloseIcon, UploadIcon, InfoIcon, UserIcon, CalendarIcon, PillIcon, WhatsAppIcon } from './Icons';
+import { PrescriptionData, SavedPrescription } from '../types';
+import { CameraIcon, CloseIcon, UploadIcon, InfoIcon, UserIcon, CalendarIcon, PillIcon, WhatsAppIcon, BookmarkIcon } from './Icons';
 import { ToastData } from './ToastContainer';
 
 interface PrescriptionReaderProps {
     onSearch: (term: string) => void;
     addToast: (message: string, type?: ToastData['type']) => void;
+    onSave: (data: PrescriptionData, previewUrl: string) => void;
+    initialData: SavedPrescription | null;
+    onClearInitialData: () => void;
 }
 
 const fileToBase64 = (file: File): Promise<{ base64: string, dataUrl: string }> => {
@@ -25,26 +29,39 @@ const fileToBase64 = (file: File): Promise<{ base64: string, dataUrl: string }> 
     });
 };
 
-const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addToast }) => {
+const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addToast, onSave, initialData, onClearInitialData }) => {
     const { t, language } = useLanguage();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [extractedData, setExtractedData] = useState<PrescriptionData | null>(null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
+    const [isSaved, setIsSaved] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const resetState = () => {
+    useEffect(() => {
+        if (initialData) {
+            setExtractedData(initialData.data);
+            setPreviewUrl(initialData.imagePreviewUrl);
+            setSelectedFile(null); // We don't have the file object for a saved item
+            setIsSaved(true); // Assume it's saved as we're viewing it
+            onClearInitialData(); // Consume it so it's not reused on re-render
+        }
+    }, [initialData, onClearInitialData]);
+
+    const resetState = useCallback(() => {
         setSelectedFile(null);
         setPreviewUrl(null);
         setIsLoading(false);
         setExtractedData(null);
+        setIsSaved(false);
         if (isCameraOpen) {
             stopCamera();
-            setIsCameraOpen(false);
         }
-    };
+        setIsCameraOpen(false);
+    }, [isCameraOpen]);
+
 
     const handleFileSelect = async (file: File | null) => {
         if (!file) return;
@@ -58,6 +75,8 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
             const { dataUrl } = await fileToBase64(file);
             setPreviewUrl(dataUrl);
             setSelectedFile(file);
+            setExtractedData(null);
+            setIsSaved(false);
         } catch (error) {
             console.error(error);
             addToast(t('toastErrorReadingImage'), 'error');
@@ -85,6 +104,7 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
             const jsonString = await readPrescription(base64, selectedFile.type, language);
             const parsedData: PrescriptionData = JSON.parse(jsonString.replace(/```json/g, '').replace(/```/g, '').trim());
             setExtractedData(parsedData);
+            setIsSaved(false);
         } catch (e) {
             console.error("Failed during analysis:", e);
             if (e instanceof SyntaxError) {
@@ -171,6 +191,13 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
+    const handleSave = () => {
+        if (extractedData && previewUrl) {
+            onSave(extractedData, previewUrl);
+            setIsSaved(true);
+        }
+    };
+
     if (extractedData) {
         return (
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 animate-fade-in">
@@ -210,16 +237,30 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
                         ) : <p className="text-gray-500 dark:text-gray-400">{t('noItemsFound')}</p>}
                     </div>
                 </div>
-                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     <button onClick={resetState} className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors flex items-center justify-center">
+                <div className="mt-8 space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                         <button
+                            onClick={handleSave}
+                            disabled={isSaved}
+                            className={`w-full flex items-center justify-center space-x-3 px-4 py-3 text-base font-medium rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200 ${
+                                isSaved
+                                ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300 cursor-default'
+                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            }`}
+                        >
+                            <BookmarkIcon className={`h-6 w-6 ${isSaved ? 'fill-current' : ''}`} />
+                            <span>{isSaved ? t('readingSaved') : t('saveReading')}</span>
+                        </button>
+                        <button
+                            onClick={handleWhatsAppQuote}
+                            className="w-full flex items-center justify-center space-x-3 px-4 py-3 text-base text-white font-medium bg-green-500 rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-green-500 transition-colors"
+                        >
+                            <WhatsAppIcon className="h-6 w-6" />
+                            <span>{t('quoteOnWhatsApp')}</span>
+                        </button>
+                    </div>
+                    <button onClick={resetState} className="w-full px-6 py-3 bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200 font-semibold rounded-lg shadow-md hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-gray-400 transition-colors flex items-center justify-center">
                         {t('uploadNew')}
-                    </button>
-                    <button
-                        onClick={handleWhatsAppQuote}
-                        className="w-full flex items-center justify-center space-x-3 px-4 py-3 text-base text-white font-medium bg-green-500 rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-green-500 transition-colors"
-                    >
-                        <WhatsAppIcon className="h-6 w-6" />
-                        <span>{t('quoteOnWhatsApp')}</span>
                     </button>
                 </div>
             </div>

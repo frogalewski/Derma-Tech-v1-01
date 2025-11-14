@@ -22,6 +22,7 @@ export interface HistoryItem {
   timestamp: number;
   disease: string;
   doctorName?: string;
+  patientName?: string;
   response: GeminiResponse;
   sources: GroundingSource[];
 }
@@ -41,4 +42,11 @@ export interface PrescriptionData {
     name: string;
     instructions: string;
   }>;
+}
+
+export interface SavedPrescription {
+  id: string;
+  timestamp: number;
+  data: PrescriptionData;
+  imagePreviewUrl: string;
 }

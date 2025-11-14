@@ -1,13 +1,7 @@
-
-
-
-
-
-
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getFormulaSuggestionsStream, generateFormulaIcon } from './services/geminiService';
 import * as dbService from './services/dbService';
-import { GeminiResponse, GroundingSource, HistoryItem, Formula, Product } from './types';
+import { GeminiResponse, GroundingSource, HistoryItem, Formula, Product, PrescriptionData, SavedPrescription } from './types';
 import { useLanguage } from './contexts/LanguageContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import FormulaCard from './components/FormulaCard';
@@ -20,23 +14,27 @@ import FormulaDetailModal from './components/FormulaDetailModal';
 import FormulaEditModal from './components/FormulaEditModal';
 import ContactModal from './components/ContactModal';
 import PrescriptionReader from './components/PrescriptionReader';
-import { MailIcon, MenuIcon, PharmacistIcon } from './components/Icons';
+import { MailIcon, MenuIcon, PharmacistIcon, PinIcon } from './components/Icons';
 
 
-export type ActiveTab = 'history' | 'saved' | 'products' | 'settings' | 'prescription';
+export type ActiveTab = 'history' | 'saved' | 'products' | 'settings' | 'prescription' | 'savedPrescriptions';
 
 
 const App: React.FC = () => {
     const { t, language } = useLanguage();
     const [disease, setDisease] = useState('');
     const [doctorName, setDoctorName] = useState('');
+    const [patientName, setPatientName] = useState('');
+    const [isDoctorNamePinned, setIsDoctorNamePinned] = useState(false);
     const [response, setResponse] = useState<GeminiResponse | null>(null);
     const [sources, setSources] = useState<GroundingSource[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [history, setHistory] = useState<HistoryItem[]>([]);
     const [savedFormulas, setSavedFormulas] = useState<Formula[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [savedPrescriptions, setSavedPrescriptions] = useState<SavedPrescription[]>([]);
     const [selectedHistoryItemId, setSelectedHistoryItemId] = useState<string | null>(null);
+    const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [isProductModalOpen, setIsProductModalOpen] = useState(false);
     const [productToEdit, setProductToEdit] = useState<Product | null>(null);
@@ -50,6 +48,7 @@ const App: React.FC = () => {
     const [formulaToEdit, setFormulaToEdit] = useState<Formula | null>(null);
     const [isDbLoading, setIsDbLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<ActiveTab>('history');
+    const [viewedPrescription, setViewedPrescription] = useState<SavedPrescription | null>(null);
 
 
     const addToast = useCallback((message: string, type: ToastData['type'] = 'error') => {
@@ -74,17 +73,20 @@ const App: React.FC = () => {
                     historyData,
                     savedFormulasData,
                     productsData,
-                    customIconsData
+                    customIconsData,
+                    savedPrescriptionsData,
                 ] = await Promise.all([
                     dbService.getAllHistory(),
                     dbService.getAllSavedFormulas(),
                     dbService.getAllProducts(),
-                    dbService.getSetting<Record<string, string>>('customIcons')
+                    dbService.getSetting<Record<string, string>>('customIcons'),
+                    dbService.getAllSavedPrescriptions(),
                 ]);
 
                 setHistory(historyData.sort((a, b) => b.timestamp - a.timestamp));
                 setSavedFormulas(savedFormulasData);
-                setProducts(productsData);
+                setProducts(productsData.sort((a, b) => a.name.localeCompare(b.name)));
+                setSavedPrescriptions(savedPrescriptionsData.sort((a, b) => b.timestamp - a.timestamp));
                 if (customIconsData) setCustomIcons(customIconsData);
 
             } catch (e) {
@@ -170,10 +172,13 @@ const App: React.FC = () => {
     const handleSaveProduct = useCallback(async (product: Product) => {
         setProducts(prev => {
             const isEditing = prev.some(p => p.id === product.id);
+            let newProducts;
             if (isEditing) {
-                return prev.map(p => p.id === product.id ? product : p);
+                newProducts = prev.map(p => p.id === product.id ? product : p);
+            } else {
+                newProducts = [product, ...prev];
             }
-            return [product, ...prev];
+            return newProducts.sort((a, b) => a.name.localeCompare(b.name));
         });
         await dbService.saveProduct(product);
     }, []);
@@ -218,7 +223,7 @@ const App: React.FC = () => {
             });
 
         if (productsToAdd.length > 0) {
-            setProducts(prev => [...productsToAdd, ...prev]);
+            setProducts(prev => [...productsToAdd, ...prev].sort((a, b) => a.name.localeCompare(b.name)));
             for (const product of productsToAdd) {
                 await dbService.saveProduct(product);
             }
@@ -280,6 +285,7 @@ const App: React.FC = () => {
         setResponse(null);
         setSources([]);
         setSelectedHistoryItemId(null);
+        setCurrentTimestamp(null);
         
         try {
             let fullText = '';
@@ -321,6 +327,7 @@ const App: React.FC = () => {
                 timestamp: Date.now(),
                 disease: term,
                 doctorName: doctorName,
+                patientName: patientName,
                 response: parsedResponse,
                 sources: collectedSources,
             };
@@ -328,6 +335,9 @@ const App: React.FC = () => {
             setHistory(prevHistory => [newItem, ...prevHistory]);
             await dbService.addHistoryItem(newItem);
             setSelectedHistoryItemId(newItem.id);
+            setCurrentTimestamp(newItem.timestamp);
+            setDisease('');
+            setPatientName('');
             
         } catch (e) {
             console.error("Failed during search:", e);
@@ -342,7 +352,7 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [disease, doctorName, considerProducts, products, generateAndSetIcons, addToast, t, language, activeTab]);
+    }, [disease, doctorName, patientName, considerProducts, products, generateAndSetIcons, addToast, t, language, activeTab]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -351,10 +361,14 @@ const App: React.FC = () => {
 
     const handleHistoryItemClick = (item: HistoryItem) => {
         setDisease(item.disease);
-        setDoctorName(item.doctorName || '');
+        if (!isDoctorNamePinned) {
+            setDoctorName(item.doctorName || '');
+        }
+        setPatientName(item.patientName || '');
         setResponse(item.response);
         setSources(item.sources);
         setSelectedHistoryItemId(item.id);
+        setCurrentTimestamp(item.timestamp);
         setIsLoading(false);
         generateAndSetIcons(item.response.formulas);
         setActiveTab('history');
@@ -366,9 +380,13 @@ const App: React.FC = () => {
         setSelectedHistoryItemId(null);
         await dbService.clearHistory();
         setDisease('');
-        setDoctorName('');
+        if (!isDoctorNamePinned) {
+            setDoctorName('');
+        }
+        setPatientName('');
         setResponse(null);
         setSources([]);
+        setCurrentTimestamp(null);
     };
     
     const handleWhatsAppPharmacist = () => {
@@ -432,6 +450,50 @@ const App: React.FC = () => {
         // handleSearch(term); 
     };
 
+    const handleSavePrescription = async (data: PrescriptionData, imagePreviewUrl: string) => {
+        if (!imagePreviewUrl) {
+            addToast('Erro: Imagem de pré-visualização não encontrada para salvar.', 'error');
+            return;
+        }
+        const isAlreadySaved = savedPrescriptions.some(p =>
+            p.data.doctorName === data.doctorName &&
+            p.data.patientName === data.patientName &&
+            p.data.date === data.date &&
+            JSON.stringify(p.data.prescribedItems) === JSON.stringify(data.prescribedItems)
+        );
+    
+        if (isAlreadySaved) {
+            addToast('Esta leitura de receita já foi salva.', 'info');
+            return;
+        }
+    
+        const newItem: SavedPrescription = {
+            id: Date.now().toString(),
+            timestamp: Date.now(),
+            data,
+            imagePreviewUrl,
+        };
+        setSavedPrescriptions(prev => [newItem, ...prev].sort((a, b) => b.timestamp - a.timestamp));
+        await dbService.savePrescription(newItem);
+        addToast(t('toastReadingSaved'), 'success');
+    };
+
+    const handleDeleteSavedPrescription = async (id: string) => {
+        setSavedPrescriptions(prev => prev.filter(p => p.id !== id));
+        await dbService.deletePrescription(id);
+    };
+    
+    const handleClearSavedPrescriptions = async () => {
+        setSavedPrescriptions([]);
+        await dbService.clearSavedPrescriptions();
+    };
+    
+    const handleSavedPrescriptionClick = (item: SavedPrescription) => {
+        setViewedPrescription(item);
+        setActiveTab('prescription');
+        setIsSidebarOpen(false);
+    };
+
     if (isDbLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -452,6 +514,8 @@ const App: React.FC = () => {
         );
     }
 
+    const currentHistoryItem = selectedHistoryItemId ? history.find(item => item.id === selectedHistoryItemId) : null;
+
     return (
         <>
             <div className="min-h-screen flex text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900">
@@ -470,6 +534,10 @@ const App: React.FC = () => {
                     onClearProducts={handleClearProducts}
                     onImportProducts={handleImportProducts}
                     onExportProducts={handleExportProducts}
+                    savedPrescriptions={savedPrescriptions}
+                    onSavedPrescriptionClick={handleSavedPrescriptionClick}
+                    onDeleteSavedPrescription={handleDeleteSavedPrescription}
+                    onClearSavedPrescriptions={handleClearSavedPrescriptions}
                     isSidebarOpen={isSidebarOpen}
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
@@ -493,12 +561,15 @@ const App: React.FC = () => {
                              <PrescriptionReader 
                                 onSearch={handleSearchFromPrescription}
                                 addToast={addToast}
+                                onSave={handleSavePrescription}
+                                initialData={viewedPrescription}
+                                onClearInitialData={() => setViewedPrescription(null)}
                              />
                         ) : (
                             <>
                                 <section>
                                     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                                        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-6 gap-4 items-center">
+                                        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-8 gap-4 items-center">
                                             <input
                                                 type="text"
                                                 value={disease}
@@ -508,14 +579,34 @@ const App: React.FC = () => {
                                                 disabled={isLoading}
                                                 aria-label={t('diseaseInputAria')}
                                             />
+                                            <div className="relative sm:col-span-2">
+                                                <input
+                                                    type="text"
+                                                    value={doctorName}
+                                                    onChange={(e) => setDoctorName(e.target.value)}
+                                                    placeholder={t('doctorInputPlaceholder')}
+                                                    className="w-full pl-4 pr-10 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                                    disabled={isLoading}
+                                                    aria-label={t('doctorInputAria')}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsDoctorNamePinned(!isDoctorNamePinned)}
+                                                    title={isDoctorNamePinned ? t('unpinDoctorNameTitle') : t('pinDoctorNameTitle')}
+                                                    className={`absolute inset-y-0 right-0 flex items-center pr-3 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDoctorNamePinned ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                                                    aria-label={isDoctorNamePinned ? t('unpinDoctorNameTitle') : t('pinDoctorNameTitle')}
+                                                >
+                                                    <PinIcon className={`h-5 w-5 ${isDoctorNamePinned ? 'fill-current' : ''}`} />
+                                                </button>
+                                            </div>
                                             <input
                                                 type="text"
-                                                value={doctorName}
-                                                onChange={(e) => setDoctorName(e.target.value)}
-                                                placeholder={t('doctorInputPlaceholder')}
+                                                value={patientName}
+                                                onChange={(e) => setPatientName(e.target.value)}
+                                                placeholder={t('patientInputPlaceholder')}
                                                 className="sm:col-span-2 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
                                                 disabled={isLoading}
-                                                aria-label={t('doctorInputAria')}
+                                                aria-label={t('patientInputAria')}
                                             />
                                             <button
                                                 type="submit"
@@ -573,7 +664,9 @@ const App: React.FC = () => {
                                                         formula={formula}
                                                         onSave={handleToggleSaveFormula}
                                                         isSaved={savedFormulas.some(f => f.id === formula.id)}
-                                                        doctorName={doctorName}
+                                                        doctorName={currentHistoryItem?.doctorName}
+                                                        patientName={currentHistoryItem?.patientName}
+                                                        createdAt={currentTimestamp}
                                                         iconDataUrl={formulaIcons[formula.name]}
                                                         isGeneratingIcon={generatingIcons.has(formula.name)}
                                                         onExpand={handleExpandFormula}
@@ -630,7 +723,8 @@ const App: React.FC = () => {
             {expandedFormula && (
                 <FormulaDetailModal
                     formula={expandedFormula}
-                    doctorName={doctorName}
+                    doctorName={currentHistoryItem?.doctorName}
+                    patientName={currentHistoryItem?.patientName}
                     onClose={handleCloseExpandedView}
                     isSaved={savedFormulas.some(f => f.id === expandedFormula.id)}
                     onSave={handleToggleSaveFormula}
@@ -639,6 +733,7 @@ const App: React.FC = () => {
                     customIconUrl={customIcons[expandedFormula.id]}
                     onCustomIconChange={handleCustomIconChange}
                     onRemoveCustomIcon={handleRemoveCustomIcon}
+                    createdAt={currentTimestamp}
                 />
             )}
 
