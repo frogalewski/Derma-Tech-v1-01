@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { getFormulaSuggestionsStream, generateFormulaIcon } from './services/geminiService';
 import * as dbService from './services/dbService';
-import { GeminiResponse, GroundingSource, HistoryItem, Formula, Product, PrescriptionData, SavedPrescription } from './types';
+import { GeminiResponse, GroundingSource, HistoryItem, Formula, Product, PrescriptionData, SavedPrescription, Theme } from './types';
 import { useLanguage } from './contexts/LanguageContext';
 import LoadingSpinner from './components/LoadingSpinner';
 import FormulaCard from './components/FormulaCard';
@@ -14,7 +14,7 @@ import FormulaDetailModal from './components/FormulaDetailModal';
 import FormulaEditModal from './components/FormulaEditModal';
 import ContactModal from './components/ContactModal';
 import PrescriptionReader from './components/PrescriptionReader';
-import { MailIcon, MenuIcon, PharmacistIcon, PinIcon } from './components/Icons';
+import { MailIcon, MenuIcon, PharmacistIcon, PaperclipIcon } from './components/Icons';
 
 
 export type ActiveTab = 'history' | 'saved' | 'products' | 'settings' | 'prescription' | 'savedPrescriptions';
@@ -50,6 +50,10 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('history');
     const [viewedPrescription, setViewedPrescription] = useState<SavedPrescription | null>(null);
 
+    // Settings State
+    const [theme, setTheme] = useState<Theme>('system');
+    const [showDoctorName, setShowDoctorName] = useState<boolean>(true);
+    const [showPatientName, setShowPatientName] = useState<boolean>(true);
 
     const addToast = useCallback((message: string, type: ToastData['type'] = 'error') => {
         const id = Date.now();
@@ -66,6 +70,26 @@ const App: React.FC = () => {
     };
 
     useEffect(() => {
+        const root = window.document.documentElement;
+        
+        if (theme === 'dark') {
+            root.classList.add('dark');
+        } else if (theme === 'light') {
+            root.classList.remove('dark');
+        } else { // system
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            const handleChange = (e: MediaQueryListEvent) => {
+                root.classList.toggle('dark', e.matches);
+            };
+            
+            root.classList.toggle('dark', mediaQuery.matches);
+            mediaQuery.addEventListener('change', handleChange);
+            
+            return () => mediaQuery.removeEventListener('change', handleChange);
+        }
+    }, [theme]);
+
+    useEffect(() => {
         const loadDataFromDb = async () => {
             try {
                 await dbService.initDB();
@@ -75,12 +99,18 @@ const App: React.FC = () => {
                     productsData,
                     customIconsData,
                     savedPrescriptionsData,
+                    savedTheme,
+                    savedShowDoctorName,
+                    savedShowPatientName,
                 ] = await Promise.all([
                     dbService.getAllHistory(),
                     dbService.getAllSavedFormulas(),
                     dbService.getAllProducts(),
                     dbService.getSetting<Record<string, string>>('customIcons'),
                     dbService.getAllSavedPrescriptions(),
+                    dbService.getSetting<Theme>('theme'),
+                    dbService.getSetting<boolean>('showDoctorName'),
+                    dbService.getSetting<boolean>('showPatientName'),
                 ]);
 
                 setHistory(historyData.sort((a, b) => b.timestamp - a.timestamp));
@@ -88,6 +118,10 @@ const App: React.FC = () => {
                 setProducts(productsData.sort((a, b) => a.name.localeCompare(b.name)));
                 setSavedPrescriptions(savedPrescriptionsData.sort((a, b) => b.timestamp - a.timestamp));
                 if (customIconsData) setCustomIcons(customIconsData);
+
+                if (savedTheme) setTheme(savedTheme);
+                if (savedShowDoctorName !== null) setShowDoctorName(savedShowDoctorName);
+                if (savedShowPatientName !== null) setShowPatientName(savedShowPatientName);
 
             } catch (e) {
                 console.error("Failed to load data from database:", e);
@@ -197,11 +231,6 @@ const App: React.FC = () => {
         setProducts(prev => prev.filter(p => p.id !== productId));
         await dbService.deleteProduct(productId);
     }, []);
-
-    const handleClearProducts = async () => {
-        setProducts([]);
-        await dbService.clearProducts();
-    };
 
     const handleImportProducts = useCallback(async (newProducts: Omit<Product, 'id'>[]) => {
         let addedCount = 0;
@@ -494,13 +523,29 @@ const App: React.FC = () => {
         setIsSidebarOpen(false);
     };
 
+    // Settings handlers
+    const handleThemeChange = async (newTheme: Theme) => {
+        setTheme(newTheme);
+        await dbService.setSetting('theme', newTheme);
+    };
+
+    const handleShowDoctorNameChange = async (show: boolean) => {
+        setShowDoctorName(show);
+        await dbService.setSetting('showDoctorName', show);
+    };
+
+    const handleShowPatientNameChange = async (show: boolean) => {
+        setShowPatientName(show);
+        await dbService.setSetting('showPatientName', show);
+    };
+
     if (isDbLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+            <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
                 <div className="flex flex-col items-center">
                     <Logo className="h-16 w-auto text-gray-800 dark:text-gray-200 mb-4" />
                      <svg
-                        className="animate-spin h-8 w-8 text-indigo-600"
+                        className="animate-spin h-8 w-8 text-blue-600"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -518,7 +563,7 @@ const App: React.FC = () => {
 
     return (
         <>
-            <div className="min-h-screen flex text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900">
+            <div className="min-h-screen flex text-gray-900 dark:text-gray-100">
                 <HistorySidebar 
                     history={history}
                     onItemClick={handleHistoryItemClick}
@@ -531,7 +576,6 @@ const App: React.FC = () => {
                     onAddProduct={handleAddProduct}
                     onEditProduct={handleEditProduct}
                     onDeleteProduct={handleDeleteProduct}
-                    onClearProducts={handleClearProducts}
                     onImportProducts={handleImportProducts}
                     onExportProducts={handleExportProducts}
                     savedPrescriptions={savedPrescriptions}
@@ -541,13 +585,19 @@ const App: React.FC = () => {
                     isSidebarOpen={isSidebarOpen}
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
+                    theme={theme}
+                    onThemeChange={handleThemeChange}
+                    showDoctorName={showDoctorName}
+                    onShowDoctorNameChange={handleShowDoctorNameChange}
+                    showPatientName={showPatientName}
+                    onShowPatientNameChange={handleShowPatientNameChange}
                 />
                 <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto h-screen">
                     <div className="max-w-4xl mx-auto">
                         <header className="relative text-center mb-8">
                             <button
                                 onClick={handleToggleSidebar}
-                                className="absolute top-1/2 -translate-y-1/2 left-0 p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="absolute top-1/2 -translate-y-1/2 left-0 p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 aria-label={t('toggleSidebarAria')}
                             >
                                 <MenuIcon className="h-7 w-7" />
@@ -568,50 +618,54 @@ const App: React.FC = () => {
                         ) : (
                             <>
                                 <section>
-                                    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-                                        <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-8 gap-4 items-center">
+                                    <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
+                                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                                             <input
                                                 type="text"
                                                 value={disease}
                                                 onChange={(e) => setDisease(e.target.value)}
                                                 placeholder={t('diseaseInputPlaceholder')}
-                                                className="sm:col-span-3 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                                className="flex-grow w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                                                 disabled={isLoading}
                                                 aria-label={t('diseaseInputAria')}
                                             />
-                                            <div className="relative sm:col-span-2">
+                                            {showDoctorName && (
+                                                <div className="relative w-full">
+                                                    <input
+                                                        type="text"
+                                                        value={doctorName}
+                                                        onChange={(e) => setDoctorName(e.target.value)}
+                                                        placeholder={t('doctorInputPlaceholder')}
+                                                        className="w-full pl-4 pr-10 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                                                        disabled={isLoading}
+                                                        aria-label={t('doctorInputAria')}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setIsDoctorNamePinned(!isDoctorNamePinned)}
+                                                        title={isDoctorNamePinned ? t('unpinDoctorNameTitle') : t('pinDoctorNameTitle')}
+                                                        className={`absolute inset-y-0 right-0 flex items-center pr-3 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDoctorNamePinned ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+                                                        aria-label={isDoctorNamePinned ? t('unpinDoctorNameTitle') : t('pinDoctorNameTitle')}
+                                                    >
+                                                        <PaperclipIcon className="h-8 w-8" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {showPatientName && (
                                                 <input
                                                     type="text"
-                                                    value={doctorName}
-                                                    onChange={(e) => setDoctorName(e.target.value)}
-                                                    placeholder={t('doctorInputPlaceholder')}
-                                                    className="w-full pl-4 pr-10 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                                    value={patientName}
+                                                    onChange={(e) => setPatientName(e.target.value)}
+                                                    placeholder={t('patientInputPlaceholder')}
+                                                    className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                                                     disabled={isLoading}
-                                                    aria-label={t('doctorInputAria')}
+                                                    aria-label={t('patientInputAria')}
                                                 />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setIsDoctorNamePinned(!isDoctorNamePinned)}
-                                                    title={isDoctorNamePinned ? t('unpinDoctorNameTitle') : t('pinDoctorNameTitle')}
-                                                    className={`absolute inset-y-0 right-0 flex items-center pr-3 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isDoctorNamePinned ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
-                                                    aria-label={isDoctorNamePinned ? t('unpinDoctorNameTitle') : t('pinDoctorNameTitle')}
-                                                >
-                                                    <PinIcon className={`h-5 w-5 ${isDoctorNamePinned ? 'fill-current' : ''}`} />
-                                                </button>
-                                            </div>
-                                            <input
-                                                type="text"
-                                                value={patientName}
-                                                onChange={(e) => setPatientName(e.target.value)}
-                                                placeholder={t('patientInputPlaceholder')}
-                                                className="sm:col-span-2 w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
-                                                disabled={isLoading}
-                                                aria-label={t('patientInputAria')}
-                                            />
+                                            )}
                                             <button
                                                 type="submit"
                                                 disabled={isLoading}
-                                                className="sm:col-span-1 w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
+                                                className="flex-shrink-0 w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
                                             >
                                                 {isLoading ? (
                                                     <>
@@ -637,7 +691,7 @@ const App: React.FC = () => {
                                                         onChange={() => setConsiderProducts(!considerProducts)}
                                                         disabled={isLoading || products.length === 0}
                                                     />
-                                                    <div className="block h-6 w-10 rounded-full bg-gray-300 dark:bg-gray-600 peer-checked:bg-indigo-600 transition-colors"></div>
+                                                    <div className="block h-6 w-10 rounded-full bg-gray-300 dark:bg-gray-600 peer-checked:bg-blue-600 transition-colors"></div>
                                                     <div className="dot absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-4"></div>
                                                 </div>
                                                 <span className={`ml-3 transition-colors ${products.length === 0 ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed' : ''}`}>
@@ -652,7 +706,7 @@ const App: React.FC = () => {
                                     {isLoading && <LoadingSpinner />}
                                     {response && (
                                         <div className="animate-fade-in">
-                                            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+                                            <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
                                                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('conditionSummaryTitle')}</h2>
                                                 <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{response.summary}</p>
                                             </div>
@@ -688,7 +742,7 @@ const App: React.FC = () => {
                          <div className="flex items-center justify-center space-x-4">
                             <button 
                                 onClick={() => setIsContactModalOpen(true)}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-base px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                             >
                                 <MailIcon className="h-8 w-8" />
                                 <span>{t('contactUs')}</span>

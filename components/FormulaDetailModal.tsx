@@ -1,9 +1,11 @@
 
 
+
+
 import React, { useState, useRef } from 'react';
 import { Formula } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, DownloadIcon, EditIcon, PillIcon, TagIcon, WhatsAppIcon } from './Icons';
+import { BookmarkIcon, CheckIcon, CloseIcon, CopyIcon, DownloadIcon, EditIcon, PillIcon, TagIcon, WhatsAppIcon, PrintIcon } from './Icons';
 
 interface FormulaDetailModalProps {
   formula: Formula;
@@ -39,7 +41,8 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
         if (doctorName) content += `${t('doctorLabel')}: ${doctorName}\n`;
         if (patientName) content += `${t('patientLabel')}: ${patientName}\n`;
         if (formula.averageValue) content += `${t('averageValueLabel')}: ${formula.averageValue}\n`;
-        content += `\n${t('ingredientsLabel')}:\n${formula.ingredients.map(ing => `- ${ing}`).join('\n')}\n\n` +
+        content += `\n${t('formulaActionLabel')}:\n${formula.description}\n\n` +
+                   `${t('ingredientsLabel')}:\n${formula.ingredients.map(ing => `- ${ing}`).join('\n')}\n\n` +
                    `${t('instructionsLabel')}:\n${formula.instructions}`;
         const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -96,6 +99,60 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
         onRemoveCustomIcon(formula.id);
     };
 
+    const handlePrint = () => {
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            const printContent = `
+                <!DOCTYPE html>
+                <html lang="${language}">
+                <head>
+                    <title>${t('prescription')} - ${formula.name}</title>
+                    <style>
+                        body { font-family: 'Times New Roman', Times, serif; margin: 40px; color: #000; }
+                        @page { size: auto; margin: 25mm; }
+                        .header { text-align: left; margin-bottom: 30px; line-height: 1.6; }
+                        .header p { margin: 2px 0; font-size: 16px; }
+                        .content h1 { font-size: 18px; font-weight: bold; margin-bottom: 15px; text-decoration: underline; text-align: center;}
+                        .content h2 { font-weight: bold; margin-top: 20px; margin-bottom: 5px; font-size: 16px; }
+                        .content ul { list-style-type: none; padding-left: 0; }
+                        .content ul li { margin-bottom: 4px; font-size: 16px; }
+                        .content p { margin-top: 10px; white-space: pre-wrap; font-size: 16px; }
+                        .signature { margin-top: 100px; text-align: center; }
+                        .signature-line { border-top: 1px solid #000; width: 300px; margin: 0 auto; }
+                        .signature-text { margin-top: 5px; font-size: 16px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <p><strong>${t('patientLabel')}:</strong> ${patientName || '____________________________________________'}</p>
+                        <p><strong>${t('doctorLabel')}:</strong> ${doctorName || '____________________________________________'}</p>
+                        <p><strong>${t('dateLabel')}:</strong> ${new Date(createdAt || Date.now()).toLocaleDateString(language)}</p>
+                    </div>
+                    <div class="content">
+                        <h1>${formula.name}</h1>
+                        <h2>${t('ingredientsLabel')}:</h2>
+                        <ul>
+                            ${formula.ingredients.map(ing => `<li>- ${ing}</li>`).join('')}
+                        </ul>
+                        <h2>${t('instructionsLabel')}:</h2>
+                        <p>${formula.instructions}</p>
+                    </div>
+                    <div class="signature">
+                        <div class="signature-line"></div>
+                        <p class="signature-text">${doctorName || t('signature')}</p>
+                    </div>
+                </body>
+                </html>
+            `;
+
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+        }
+    };
+
     return (
         <div 
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm" 
@@ -117,17 +174,17 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
                             accept="image/*"
                         />
                          <div className="flex-shrink-0 text-center">
-                            <div className="h-12 w-12 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/50 rounded-full mx-auto">
+                            <div className="h-12 w-12 flex items-center justify-center bg-blue-100 dark:bg-blue-900/50 rounded-full mx-auto">
                                {customIconUrl ? (
                                     <img src={customIconUrl} alt={t('customIconFor', { formulaName: formula.name })} className="h-full w-full object-cover rounded-full" />
                                 ) : iconDataUrl ? (
                                     <img src={iconDataUrl} alt={t('iconFor', { formulaName: formula.name })} className="h-8 w-8 object-contain" />
                                 ) : (
-                                   <PillIcon className="h-7 w-7 text-indigo-600 dark:text-indigo-400" />
+                                   <PillIcon className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                                 )}
                             </div>
                             <div className="mt-2 flex justify-center items-center gap-2">
-                                <button onClick={handleIconClick} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline focus:outline-none">
+                                <button onClick={handleIconClick} className="text-xs text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">
                                     {t('changeButton')}
                                 </button>
                                 {customIconUrl && (
@@ -160,7 +217,7 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
                             )}
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <CloseIcon className="h-7 w-7" />
                         <span className="sr-only">{t('closeButton')}</span>
                     </button>
@@ -168,13 +225,24 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
 
                 <main className="p-4 sm:p-6 flex-grow overflow-y-auto">
                     <div className="space-y-6">
+                        {formula.description && (
+                            <div>
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-base font-semibold text-gray-600 dark:text-gray-300">{t('formulaActionLabel')}:</h3>
+                                    <button onClick={() => handleCopy(formula.description)} title={t('copyAction')} className="p-1 rounded-md text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        {copiedText === formula.description ? <CheckIcon className="h-6 w-6 text-green-500"/> : <CopyIcon className="h-6 w-6"/>}
+                                    </button>
+                                </div>
+                                <p className="mt-2 text-base text-gray-800 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">{formula.description}</p>
+                            </div>
+                        )}
                         <div>
                             <h3 className="text-base font-semibold text-gray-600 dark:text-gray-300">{t('ingredientsLabel')}:</h3>
                             <ul className="mt-2 space-y-2 text-gray-700 dark:text-gray-400">
                                 {formula.ingredients.map((ingredient, index) => (
                                     <li key={index} className="flex justify-between items-center group bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
                                         <span className="text-base">{ingredient}</span>
-                                        <button onClick={() => handleCopy(ingredient)} title={t('copyIngredient')} className="ml-2 p-1 rounded-md text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <button onClick={() => handleCopy(ingredient)} title={t('copyIngredient')} className="ml-2 p-1 rounded-md text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                             {copiedText === ingredient ? <CheckIcon className="h-6 w-6 text-green-500"/> : <CopyIcon className="h-6 w-6"/>}
                                         </button>
                                     </li>
@@ -184,7 +252,7 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
                         <div>
                             <div className="flex justify-between items-center">
                                 <h3 className="text-base font-semibold text-gray-600 dark:text-gray-300">{t('instructionsLabel')}:</h3>
-                                <button onClick={() => handleCopy(formula.instructions)} title={t('copyInstructions')} className="p-1 rounded-md text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <button onClick={() => handleCopy(formula.instructions)} title={t('copyInstructions')} className="p-1 rounded-md text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                     {copiedText === formula.instructions ? <CheckIcon className="h-6 w-6 text-green-500"/> : <CopyIcon className="h-6 w-6"/>}
                                 </button>
                             </div>
@@ -193,10 +261,10 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
                     </div>
                 </main>
 
-                <footer className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <footer className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-center gap-3">
                     <button
                         onClick={() => onSave(formula)}
-                        className={`w-full flex items-center justify-center space-x-3 px-4 py-4 text-base font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200 ${
+                        className={`flex items-center justify-center space-x-3 px-4 py-3 text-base font-medium rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 ${
                             isSaved
                             ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300 hover:bg-teal-200'
                             : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -207,24 +275,32 @@ const FormulaDetailModal: React.FC<FormulaDetailModalProps> = ({ formula, doctor
                     </button>
                     <button
                         onClick={handleWhatsAppQuote}
-                        className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-white font-medium bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-green-500 transition-colors duration-200"
+                        className="flex items-center justify-center space-x-3 px-4 py-3 text-base text-white font-medium bg-green-500 rounded-lg shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-green-500 transition-all duration-200 transform hover:scale-105"
                     >
                         <WhatsAppIcon className="h-8 w-8" />
                         <span>{t('quoteButton')}</span>
                     </button>
                      <button
                         onClick={handleEditClick}
-                        className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-blue-700 dark:text-blue-300 font-medium bg-blue-100 dark:bg-blue-900/50 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-200"
+                        className="flex items-center justify-center space-x-3 px-4 py-3 text-base text-blue-700 dark:text-blue-300 font-medium bg-blue-100 dark:bg-blue-900/50 rounded-lg shadow-sm hover:bg-blue-200 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
                     >
                         <EditIcon className="h-8 w-8" />
                         <span>{t('editButton')}</span>
                     </button>
                     <button
                         onClick={handleExportTxt}
-                        className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-100 dark:bg-indigo-900/50 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200"
+                        className="flex items-center justify-center space-x-3 px-4 py-3 text-base text-blue-700 dark:text-blue-300 font-medium bg-blue-100 dark:bg-blue-900/50 rounded-lg shadow-sm hover:bg-blue-200 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
                     >
                         <DownloadIcon className="h-8 w-8" />
                         <span>{t('exportButton')}</span>
+                    </button>
+                     <button
+                        onClick={handlePrint}
+                        className="flex items-center justify-center space-x-3 px-4 py-3 text-base text-gray-700 dark:text-gray-300 font-medium bg-gray-200 dark:bg-gray-700 rounded-lg shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
+                        aria-label={t('printAria', { formulaName: formula.name })}
+                    >
+                        <PrintIcon className="h-8 w-8" />
+                        <span>{t('printButton')}</span>
                     </button>
                 </footer>
             </div>

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { readPrescription } from '../services/geminiService';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -228,7 +229,7 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
                                             <p className="font-bold text-gray-900 dark:text-white">{item.name}</p>
                                             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{item.instructions}</p>
                                         </div>
-                                        <button onClick={() => onSearch(item.name)} className="ml-4 text-sm bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 font-semibold px-3 py-2 rounded-md whitespace-nowrap transition-colors">
+                                        <button onClick={() => onSearch(item.name)} className="ml-4 text-sm bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900 font-semibold px-3 py-2 rounded-md whitespace-nowrap transition-colors">
                                             {t('searchFormulasFor')}
                                         </button>
                                     </div>
@@ -242,10 +243,10 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
                          <button
                             onClick={handleSave}
                             disabled={isSaved}
-                            className={`w-full flex items-center justify-center space-x-3 px-4 py-3 text-base font-medium rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200 ${
+                            className={`w-full flex items-center justify-center space-x-3 px-4 py-3 text-base font-medium rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-200 ${
                                 isSaved
                                 ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300 cursor-default'
-                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
                             }`}
                         >
                             <BookmarkIcon className={`h-6 w-6 ${isSaved ? 'fill-current' : ''}`} />
@@ -281,7 +282,7 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
                                 <CloseIcon className="h-6 w-6" />
                             </button>
                         </div>
-                        <button onClick={handleTakePicture} className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700">
+                        <button onClick={handleTakePicture} className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">
                            <CameraIcon className="h-6 w-6" /> {t('takePicture')}
                         </button>
                     </div>
@@ -290,7 +291,7 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
                         <div
                             onDrop={handleDrop}
                             onDragOver={e => e.preventDefault()}
-                            className="mt-4 p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center cursor-pointer hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors"
+                            className="mt-4 p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
                         >
                             <input type="file" accept="image/*" onChange={handleFileChange} className="hidden" id="file-upload" />
                             <label htmlFor="file-upload" className="flex flex-col items-center cursor-pointer">
@@ -314,7 +315,7 @@ const PrescriptionReader: React.FC<PrescriptionReaderProps> = ({ onSearch, addTo
                         <button
                             onClick={handleAnalyze}
                             disabled={isLoading}
-                            className="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
+                            className="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center space-x-2"
                         >
                             {isLoading ? (
                                 <>

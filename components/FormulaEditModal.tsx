@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Formula } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -15,6 +16,7 @@ interface FormulaEditModalProps {
 
 const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, onSave, formula }) => {
     const [name, setName] = useState('');
+    const [description, setDescription] = useState('');
     const [ingredients, setIngredients] = useState<string[]>([]);
     const [instructions, setInstructions] = useState('');
     const [averageValue, setAverageValue] = useState('');
@@ -25,6 +27,7 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
     useEffect(() => {
         if (formula) {
             setName(formula.name);
+            setDescription(formula.description || '');
             setIngredients([...formula.ingredients]);
             setInstructions(formula.instructions);
             setAverageValue(formula.averageValue || '');
@@ -56,6 +59,7 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
         const updatedFormula: Formula = {
             ...formula,
             name: name.trim(),
+            description: description.trim(),
             ingredients,
             instructions: instructions.trim(),
             averageValue: averageValue.trim(),
@@ -81,7 +85,7 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
                         </div>
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white" id="edit-modal-title">{t('editFormulaTitle')}</h2>
                     </div>
-                    <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button onClick={onClose} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <CloseIcon className="h-7 w-7" />
                         <span className="sr-only">{t('closeButton')}</span>
                     </button>
@@ -96,7 +100,7 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
                                 id="formula-name"
                                 value={name}
                                 onChange={e => { setName(e.target.value); if(nameError) setNameError(''); }}
-                                className={`w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border rounded-lg focus:ring-2 focus:border-indigo-500 transition duration-200 ${nameError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'}`}
+                                className={`w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-200 ${nameError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'}`}
                             />
                             {nameError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{nameError}</p>}
                         </div>
@@ -109,8 +113,20 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
                                 value={averageValue}
                                 onChange={e => setAverageValue(e.target.value)}
                                 placeholder={t('averageValuePlaceholder')}
-                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                             />
+                        </div>
+
+                        <div>
+                            <label htmlFor="formula-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('formulaActionLabel')}</label>
+                            <textarea
+                                id="formula-description"
+                                rows={3}
+                                value={description}
+                                onChange={e => setDescription(e.target.value)}
+                                placeholder={t('formulaActionPlaceholder')}
+                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
+                            ></textarea>
                         </div>
 
                         <div>
@@ -132,11 +148,11 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
                                     onChange={e => setNewIngredient(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleAddIngredient()}
                                     placeholder={t('newIngredientPlaceholder')}
-                                    className="flex-grow px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                    className="flex-grow px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                                 />
                                 <button
                                     onClick={handleAddIngredient}
-                                    className="flex-shrink-0 p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    className="flex-shrink-0 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                     aria-label={t('addIngredientAria')}
                                 >
                                     <PlusIcon className="h-7 w-7" />
@@ -151,7 +167,7 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
                                 rows={4}
                                 value={instructions}
                                 onChange={e => setInstructions(e.target.value)}
-                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                             ></textarea>
                         </div>
                     </div>
@@ -168,7 +184,7 @@ const FormulaEditModal: React.FC<FormulaEditModalProps> = ({ isOpen, onClose, on
                     <button
                         type="button"
                         onClick={handleSave}
-                        className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                        className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                     >
                         {t('saveChangesButton')}
                     </button>

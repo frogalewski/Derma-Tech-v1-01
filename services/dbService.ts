@@ -107,7 +107,6 @@ export const clearSavedFormulas = () => clear(STORES.SAVED_FORMULAS);
 export const getAllProducts = () => getAll<Product>(STORES.PRODUCTS);
 export const saveProduct = (product: Product) => put(STORES.PRODUCTS, product);
 export const deleteProduct = (productId: string) => remove(STORES.PRODUCTS, productId);
-export const clearProducts = () => clear(STORES.PRODUCTS);
 
 // Settings functions (for backgroundImage, customIcons, etc.)
 export const getSetting = async <T>(key: string): Promise<T | null> => {

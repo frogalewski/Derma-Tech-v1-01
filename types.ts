@@ -1,6 +1,7 @@
 export interface Formula {
   id: string;
   name: string;
+  description: string;
   ingredients: string[];
   instructions: string;
   averageValue?: string;
@@ -50,3 +51,5 @@ export interface SavedPrescription {
   data: PrescriptionData;
   imagePreviewUrl: string;
 }
+
+export type Theme = 'light' | 'dark' | 'system';

@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -65,14 +66,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg m-4 p-6 relative animate-fade-in"
                 onClick={e => e.stopPropagation()}
             >
-                <button onClick={onClose} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onClick={onClose} className="absolute top-4 right-4 p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <CloseIcon className="h-7 w-7" />
                     <span className="sr-only">{t('closeModal')}</span>
                 </button>
                 
                 <div className="flex items-center space-x-3 mb-6">
-                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
-                        <PackageIcon className="h-7 w-7 text-indigo-600 dark:text-indigo-400" />
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-full">
+                        <PackageIcon className="h-7 w-7 text-blue-600 dark:text-blue-400" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         {productToEdit ? t('editProduct') : t('addProduct')}
@@ -92,7 +93,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                                 autoFocus
                                 aria-invalid={!!error}
                                 aria-describedby="product-name-error"
-                                className={`w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border rounded-lg focus:ring-2 focus:border-indigo-500 transition duration-200 ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-indigo-500'}`}
+                                className={`w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border rounded-lg focus:ring-2 focus:border-blue-500 transition duration-200 ${error ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'}`}
                             />
                             {error && <p id="product-name-error" className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
                         </div>
@@ -104,7 +105,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                                 value={category}
                                 onChange={e => setCategory(e.target.value)}
                                 placeholder={t('categoryPlaceholder')}
-                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                             />
                         </div>
                         <div>
@@ -115,7 +116,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
                                 placeholder={t('descriptionPlaceholder')}
-                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200"
+                                className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-200"
                             ></textarea>
                         </div>
                     </div>
@@ -129,7 +130,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ isOpen, onClose, onSave, pr
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                            className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                         >
                             {t('saveButton')}
                         </button>

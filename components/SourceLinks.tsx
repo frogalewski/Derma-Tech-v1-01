@@ -1,5 +1,6 @@
 
 
+
 import React from 'react';
 import { GroundingSource } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -31,7 +32,7 @@ const SourceLinks: React.FC<SourceLinksProps> = ({ sources }) => {
                             href={source.uri}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 hover:underline"
+                            className="block text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
                             title={source.title}
                         >
                             <span className="font-bold">{index + 1}. {source.title}</span>

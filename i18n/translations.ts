@@ -13,8 +13,8 @@ const ptBR = {
   diseaseInputAria: 'Condição ou doença',
   doctorInputAria: 'Nome do Médico',
   patientInputAria: 'Nome do Paciente',
-  pinDoctorNameTitle: 'Fixar nome do médico',
-  unpinDoctorNameTitle: 'Desafixar nome do médico',
+  pinDoctorNameTitle: 'Anexar nome do médico',
+  unpinDoctorNameTitle: 'Desanexar nome do médico',
   searchingButton: 'Buscando',
   searchButton: 'Buscar',
   considerProductsLabel: 'Considerar meus produtos cadastrados',
@@ -41,6 +41,14 @@ const ptBR = {
   saved: 'Fórmulas Salvas',
   products: 'Produtos',
   settings: 'Configurações',
+  appearance: 'Aparência',
+  theme: 'Tema',
+  light: 'Claro',
+  dark: 'Escuro',
+  system: 'Sistema',
+  formFields: 'Campos do Formulário',
+  showDoctorName: 'Exibir nome do Médico',
+  showPatientName: 'Exibir nome do Paciente',
   prescriptionReader: 'Ler Receita',
   prescriptionReaderInstructions: 'Use a IA para ler e extrair dados de uma receita.',
   noHistory: 'Nenhuma pesquisa ainda.',
@@ -60,7 +68,6 @@ const ptBR = {
   selectLanguage: 'Selecione o idioma',
   clearHistory: 'Limpar Histórico',
   clearSaved: 'Limpar Salvos',
-  clearProducts: 'Limpar Produtos',
   alertCsvEmpty: 'Arquivo CSV vazio ou sem dados. Certifique-se de que ele tem um cabeçalho e pelo menos uma linha de dados.',
   alertCsvNoNameColumn: "O arquivo CSV deve conter uma coluna 'name'.",
   alertNoValidProducts: 'Nenhum produto válido encontrado no arquivo.',
@@ -105,6 +112,12 @@ const ptBR = {
   averageValueLabel: 'Valor Médio',
   patientLabel: 'Paciente',
   generatedOn: 'Gerado em',
+  printButton: 'Imprimir',
+  printAria: 'Imprimir Receituário para {{formulaName}}',
+  prescription: 'Receituário Médico',
+  signature: 'Assinatura do Médico',
+  formulaActionLabel: 'Atuação da Fórmula',
+  copyAction: 'Copiar atuação',
 
   // FormulaEditModal.tsx
   editFormulaTitle: 'Editar Fórmula',
@@ -115,6 +128,7 @@ const ptBR = {
   saveChangesButton: 'Salvar Alterações',
   cancelButton: 'Cancelar',
   averageValuePlaceholder: 'Ex: R$ 50,00 - R$ 70,00',
+  formulaActionPlaceholder: 'Descreva a principal ação da fórmula...',
 
   // LoadingSpinner.tsx
   loadingText: 'Buscando informações e gerando fórmulas...',
@@ -167,6 +181,7 @@ Forneça a resposta em um único objeto JSON, exclusivamente em Português do Br
   "formulas": [
     {
       "name": "Nome da Fórmula (ex: 'Creme Hidratante com Ureia e Alfa-Bisabolol')",
+      "description": "Descrição da atuação da fórmula (ex: 'Ação queratolítica e hidratante, ideal para áreas de pele espessa e ressecada.')",
       "averageValue": "Uma estimativa do valor médio de venda para o consumidor final em Reais (ex: 'R$ 50,00 - R$ 70,00')",
       "ingredients": [
         "Ingrediente 1 com concentração (ex: 'Ureia 10%')",
@@ -200,8 +215,8 @@ const en = {
   diseaseInputAria: 'Condition or disease',
   doctorInputAria: "Doctor's Name",
   patientInputAria: "Patient's Name",
-  pinDoctorNameTitle: "Pin doctor's name",
-  unpinDoctorNameTitle: "Unpin doctor's name",
+  pinDoctorNameTitle: "Attach doctor's name",
+  unpinDoctorNameTitle: "Detach doctor's name",
   searchingButton: 'Searching',
   searchButton: 'Search',
   considerProductsLabel: 'Consider my registered products',
@@ -228,6 +243,14 @@ const en = {
   saved: 'Saved Formulas',
   products: 'Products',
   settings: 'Settings',
+  appearance: 'Appearance',
+  theme: 'Theme',
+  light: 'Light',
+  dark: 'Dark',
+  system: 'System',
+  formFields: 'Form Fields',
+  showDoctorName: "Show Doctor's Name",
+  showPatientName: "Show Patient's Name",
   prescriptionReader: 'Read Prescription',
   prescriptionReaderInstructions: 'Use AI to read and extract data from a prescription.',
   noHistory: 'No searches yet.',
@@ -247,7 +270,6 @@ const en = {
   selectLanguage: 'Select language',
   clearHistory: 'Clear History',
   clearSaved: 'Clear Saved',
-  clearProducts: 'Clear Products',
   alertCsvEmpty: 'CSV file is empty or has no data. Make sure it has a header and at least one data row.',
   alertCsvNoNameColumn: "The CSV file must contain a 'name' column.",
   alertNoValidProducts: 'No valid products found in the file.',
@@ -292,6 +314,12 @@ const en = {
   averageValueLabel: 'Average Value',
   patientLabel: 'Patient',
   generatedOn: 'Generated on',
+  printButton: 'Print',
+  printAria: 'Print Prescription for {{formulaName}}',
+  prescription: 'Medical Prescription',
+  signature: "Doctor's Signature",
+  formulaActionLabel: 'Formula Action',
+  copyAction: 'Copy action',
 
   // FormulaEditModal.tsx
   editFormulaTitle: 'Edit Formula',
@@ -302,6 +330,7 @@ const en = {
   saveChangesButton: 'Save Changes',
   cancelButton: 'Cancel',
   averageValuePlaceholder: 'E.g., $10.00 - $15.00',
+  formulaActionPlaceholder: 'Describe the main action of the formula...',
 
   // LoadingSpinner.tsx
   loadingText: 'Searching for information and generating formulas...',
@@ -354,6 +383,7 @@ Provide the response in a single JSON object, exclusively in English. The object
   "formulas": [
     {
       "name": "Formula Name (e.g., 'Moisturizing Cream with Urea and Alpha-Bisabolol')",
+      "description": "Description of the formula's action (e.g., 'Keratolytic and moisturizing action, ideal for thick and dry skin areas.')",
       "averageValue": "An estimated average final sale price in USD (e.g., '$10.00 - $15.00')",
       "ingredients": [
         "Ingredient 1 with concentration (e.g., 'Urea 10%')",

@@ -7,7 +7,7 @@ const LoadingSpinner: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
         <svg
-            className="animate-spin h-8 w-8 text-indigo-600"
+            className="animate-spin h-8 w-8 text-blue-600"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"

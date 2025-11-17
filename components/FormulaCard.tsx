@@ -1,9 +1,11 @@
 
 
+
+
 import React, { useState, useRef } from 'react';
 import { Formula } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
-import { BookmarkIcon, CheckIcon, CopyIcon, DownloadIcon, ExpandIcon, PillIcon, TagIcon, TrashIcon, UploadIcon, WhatsAppIcon } from './Icons';
+import { BookmarkIcon, CheckIcon, CopyIcon, DownloadIcon, ExpandIcon, PillIcon, TagIcon, TrashIcon, UploadIcon, WhatsAppIcon, PrintIcon } from './Icons';
 
 
 interface FormulaCardProps {
@@ -46,7 +48,8 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
     if (formula.averageValue) {
         content += `${t('averageValueLabel')}: ${formula.averageValue}\n`;
     }
-    content += `\n${t('ingredientsLabel')}:\n${formula.ingredients.map(ing => `- ${ing}`).join('\n')}\n\n` +
+    content += `\n${t('formulaActionLabel')}:\n${formula.description}\n\n` +
+               `${t('ingredientsLabel')}:\n${formula.ingredients.map(ing => `- ${ing}`).join('\n')}\n\n` +
                `${t('instructionsLabel')}:\n${formula.instructions}`;
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -108,8 +111,62 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
       onRemoveCustomIcon(formula.id);
   };
 
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        const printContent = `
+            <!DOCTYPE html>
+            <html lang="${language}">
+            <head>
+                <title>${t('prescription')} - ${formula.name}</title>
+                <style>
+                    body { font-family: 'Times New Roman', Times, serif; margin: 40px; color: #000; }
+                    @page { size: auto; margin: 25mm; }
+                    .header { text-align: left; margin-bottom: 30px; line-height: 1.6; }
+                    .header p { margin: 2px 0; font-size: 16px; }
+                    .content h1 { font-size: 18px; font-weight: bold; margin-bottom: 15px; text-decoration: underline; text-align: center;}
+                    .content h2 { font-weight: bold; margin-top: 20px; margin-bottom: 5px; font-size: 16px; }
+                    .content ul { list-style-type: none; padding-left: 0; }
+                    .content ul li { margin-bottom: 4px; font-size: 16px; }
+                    .content p { margin-top: 10px; white-space: pre-wrap; font-size: 16px; }
+                    .signature { margin-top: 100px; text-align: center; }
+                    .signature-line { border-top: 1px solid #000; width: 300px; margin: 0 auto; }
+                    .signature-text { margin-top: 5px; font-size: 16px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <p><strong>${t('patientLabel')}:</strong> ${patientName || '____________________________________________'}</p>
+                    <p><strong>${t('doctorLabel')}:</strong> ${doctorName || '____________________________________________'}</p>
+                    <p><strong>${t('dateLabel')}:</strong> ${new Date(createdAt || Date.now()).toLocaleDateString(language)}</p>
+                </div>
+                <div class="content">
+                    <h1>${formula.name}</h1>
+                    <h2>${t('ingredientsLabel')}:</h2>
+                    <ul>
+                        ${formula.ingredients.map(ing => `<li>- ${ing}</li>`).join('')}
+                    </ul>
+                    <h2>${t('instructionsLabel')}:</h2>
+                    <p>${formula.instructions}</p>
+                </div>
+                <div class="signature">
+                    <div class="signature-line"></div>
+                    <p class="signature-text">${doctorName || t('signature')}</p>
+                </div>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl overflow-hidden transform hover:-translate-y-1 transition-all duration-300 border border-gray-200 dark:border-gray-700 hover:border-indigo-400 dark:hover:border-indigo-600 flex flex-col">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-lg overflow-hidden transform hover:-translate-y-1 transition-all duration-300 border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 flex flex-col">
       <div className="p-8 flex-grow">
         <div className="flex items-start space-x-5">
             <div className="flex-shrink-0 relative group">
@@ -121,22 +178,22 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
                     accept="image/*"
                     aria-label={t('uploadIconFor', { formulaName: formula.name })}
                 />
-                <div className="h-14 w-14 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
+                <div className="h-14 w-14 flex items-center justify-center bg-blue-100 dark:bg-blue-900/50 rounded-full">
                     {customIconUrl ? (
                         <img src={customIconUrl} alt={t('customIconFor', { formulaName: formula.name })} className="h-full w-full object-cover rounded-full" />
                     ) : isGeneratingIcon ? (
-                        <svg className="animate-spin h-8 w-8 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-8 w-8 text-blue-600 dark:text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     ) : iconDataUrl ? (
                         <img src={iconDataUrl} alt={t('iconFor', { formulaName: formula.name })} className="h-9 w-9 object-contain" />
                     ) : (
-                        <PillIcon className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                        <PillIcon className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                     )}
                 </div>
                  <div className="absolute inset-0 rounded-full bg-gray-900/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer" onClick={handleIconClick}>
-                    <span title={t('changeIcon')} className="p-1 text-white hover:text-indigo-300 rounded-full">
+                    <span title={t('changeIcon')} className="p-1 text-white hover:text-blue-300 rounded-full">
                         <UploadIcon className="h-6 w-6" />
                     </span>
                     {customIconUrl && (
@@ -172,16 +229,27 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
                         <span>{t('averageValueLabel')}: {formula.averageValue}</span>
                     </div>
                 )}
+                {formula.description && (
+                    <div className="mt-6">
+                        <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{t('formulaActionLabel')}:</h4>
+                            <button onClick={() => handleCopy(formula.description)} title={t('copyAction')} className="p-1 rounded-md text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                {copiedText === formula.description ? <CheckIcon className="h-5 w-5 text-green-500"/> : <CopyIcon className="h-5 w-5"/>}
+                            </button>
+                        </div>
+                        <p className="mt-2 text-gray-700 dark:text-gray-400 leading-relaxed">{formula.description}</p>
+                    </div>
+                )}
                 <div className="mt-6">
                     <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{t('ingredientsLabel')}:</h4>
                     <ul className="mt-3 space-y-2 text-gray-700 dark:text-gray-400">
                         {formula.ingredients.map((ingredient, index) => (
                           <li key={index} className="flex justify-between items-center group -mx-2 px-2 py-1.5 rounded-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50">
                             <div className="flex items-center">
-                                <span className="text-indigo-500 mr-3 font-semibold">–</span>
+                                <span className="text-blue-500 mr-3 font-semibold">–</span>
                                 <span>{ingredient}</span>
                             </div>
-                             <button onClick={() => handleCopy(ingredient)} title={t('copyIngredient')} className="ml-2 p-1 rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-opacity">
+                             <button onClick={() => handleCopy(ingredient)} title={t('copyIngredient')} className="ml-2 p-1 rounded-md opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-opacity">
                                 {copiedText === ingredient ? <CheckIcon className="h-5 w-5 text-green-500"/> : <CopyIcon className="h-5 w-5"/>}
                             </button>
                           </li>
@@ -191,7 +259,7 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
                 <div className="mt-6">
                     <div className="flex justify-between items-center">
                         <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{t('instructionsLabel')}:</h4>
-                        <button onClick={() => handleCopy(formula.instructions)} title={t('copyInstructions')} className="p-1 rounded-md text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button onClick={() => handleCopy(formula.instructions)} title={t('copyInstructions')} className="p-1 rounded-md text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                              {copiedText === formula.instructions ? <CheckIcon className="h-5 w-5 text-green-500"/> : <CopyIcon className="h-5 w-5"/>}
                         </button>
                     </div>
@@ -200,10 +268,10 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
             </div>
         </div>
       </div>
-      <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-3">
+      <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 grid grid-cols-2 gap-2">
         <button
             onClick={() => onSave(formula)}
-            className={`w-full flex items-center justify-center space-x-3 px-4 py-4 text-base font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200 ${
+            className={`w-full flex items-center justify-center space-x-3 px-4 py-4 text-base font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-200 ${
                 isSaved
                 ? 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300 hover:bg-teal-200'
                 : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -214,16 +282,16 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
             <span>{isSaved ? t('savedButton') : t('saveButton')}</span>
         </button>
         <button
-            onClick={handleWhatsAppQuote}
-            className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-white font-medium bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-green-500 transition-colors duration-200"
-            aria-label={t('requestQuoteAria', { formulaName: formula.name })}
+            onClick={handlePrint}
+            className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-gray-700 dark:text-gray-300 font-medium bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-200"
+            aria-label={t('printAria', { formulaName: formula.name })}
         >
-            <WhatsAppIcon className="h-8 w-8" />
-            <span>{t('quoteButton')}</span>
+            <PrintIcon className="h-8 w-8" />
+            <span>{t('printButton')}</span>
         </button>
         <button
             onClick={handleExportTxt}
-            className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-indigo-700 dark:text-indigo-300 font-medium bg-indigo-100 dark:bg-indigo-900/50 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200"
+            className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-blue-700 dark:text-blue-300 font-medium bg-blue-100 dark:bg-blue-900/50 rounded-md hover:bg-blue-200 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-200"
             aria-label={t('exportFormulaAria', { formulaName: formula.name })}
         >
             <DownloadIcon className="h-8 w-8" />
@@ -231,11 +299,19 @@ const FormulaCard: React.FC<FormulaCardProps> = ({ formula, onSave, isSaved, doc
         </button>
          <button
             onClick={() => onExpand(formula)}
-            className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-gray-700 dark:text-gray-300 font-medium bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200"
+            className="w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-gray-700 dark:text-gray-300 font-medium bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-blue-500 transition-colors duration-200"
             aria-label={t('expandFormulaAria', { formulaName: formula.name })}
         >
             <ExpandIcon className="h-8 w-8" />
             <span>{t('expandButton')}</span>
+        </button>
+        <button
+            onClick={handleWhatsAppQuote}
+            className="col-span-2 w-full flex items-center justify-center space-x-3 px-4 py-4 text-base text-white font-medium bg-green-500 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800 focus:ring-green-500 transition-colors duration-200"
+            aria-label={t('requestQuoteAria', { formulaName: formula.name })}
+        >
+            <WhatsAppIcon className="h-8 w-8" />
+            <span>{t('quoteButton')}</span>
         </button>
       </div>
     </div>
